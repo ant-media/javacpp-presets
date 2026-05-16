@@ -28,6 +28,10 @@ public class NDISendColorBars {
     // memory and the next NDIlib_send_send_video_v2 call dereferences a dangling pointer.
     private static BytePointer pixels;
 
+    // Set to false by the shutdown hook to ask the send loop to exit cleanly.
+    // volatile so the loop observes the change immediately.
+    private static volatile boolean running = true;
+
     // 75% SMPTE color bars (top region) in BGRA byte order.
     // Order: 75% white/gray, yellow, cyan, green, magenta, red, blue.
     private static final int[][] BARS_BGRA = {
@@ -83,9 +87,24 @@ public class NDISendColorBars {
         System.out.println("Press Ctrl+C to stop.");
 
         // Ensure resources are released on shutdown.
+        //
+        // The shutdown hook runs on a separate JVM thread. If it called
+        // NDIlib_send_destroy() while the main thread was still inside
+        // NDIlib_send_send_video_v2(), libndi would dereference a freed sender
+        // instance and crash with a SIGSEGV (see hs_err_pid*.log).
+        //
+        // To avoid that race, the hook signals the loop to exit and waits for
+        // the main thread to leave native code before destroying the sender.
         final NDIlib_send_instance_t senderRef = sender;
+        final Thread mainThread = Thread.currentThread();
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override public void run() {
+                running = false;
+                try {
+                    mainThread.join();
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
                 NDIlib_send_destroy(senderRef);
                 NDIlib_destroy();
                 System.out.println("NDI sender stopped.");
@@ -93,7 +112,7 @@ public class NDISendColorBars {
         }));
 
         // Since clock_video=true, NDIlib_send_send_video_v2 will rate-limit to the frame rate.
-        while (true) {
+        while (running) {
             NDIlib_send_send_video_v2(sender, videoFrame);
         }
     }
