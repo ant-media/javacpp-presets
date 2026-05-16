@@ -19,6 +19,15 @@ public class NDISendColorBars {
     private static final int FRAME_RATE_N = 30000;
     private static final int FRAME_RATE_D = 1001;
 
+    // Held as a static field so the JVM cannot garbage-collect (and free) the native buffer
+    // while NDI is still reading from the address stored in NDIlib_video_frame_v2_t.p_data.
+    // JavaCPP does not retain a Java reference from the native struct field back to the
+    // BytePointer, so without this anchor HotSpot is free to consider a local `pixels`
+    // unreachable once its last bytecode use has passed (typically right after the
+    // videoFrame.p_data(pixels) setter). The BytePointer's deallocator then frees the
+    // memory and the next NDIlib_send_send_video_v2 call dereferences a dangling pointer.
+    private static BytePointer pixels;
+
     // 75% SMPTE color bars (top region) in BGRA byte order.
     // Order: 75% white/gray, yellow, cyan, green, magenta, red, blue.
     private static final int[][] BARS_BGRA = {
@@ -54,7 +63,7 @@ public class NDISendColorBars {
         // Allocate and fill a single static BGRA color bar frame.
         int strideBytes = WIDTH * 4;
         int frameBytes  = strideBytes * HEIGHT;
-        BytePointer pixels = new BytePointer(frameBytes);
+        pixels = new BytePointer(frameBytes);
         fillColorBars(pixels, WIDTH, HEIGHT, strideBytes);
 
         NDIlib_video_frame_v2_t videoFrame = new NDIlib_video_frame_v2_t();
