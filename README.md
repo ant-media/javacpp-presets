@@ -13,6 +13,7 @@ JavaCPP Presets
 [![librealsense](https://github.com/bytedeco/javacpp-presets/workflows/librealsense/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Alibrealsense)
 [![librealsense2](https://github.com/bytedeco/javacpp-presets/workflows/librealsense2/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Alibrealsense2)
 [![videoinput](https://github.com/bytedeco/javacpp-presets/workflows/videoinput/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Avideoinput)
+[![ndi](https://github.com/bytedeco/javacpp-presets/workflows/ndi/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Andi)
 [![artoolkitplus](https://github.com/bytedeco/javacpp-presets/workflows/artoolkitplus/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Aartoolkitplus)
 [![chilitags](https://github.com/bytedeco/javacpp-presets/workflows/chilitags/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Achilitags)
 [![flandmark](https://github.com/bytedeco/javacpp-presets/workflows/flandmark/badge.svg)](https://github.com/bytedeco/javacpp-presets/actions?query=workflow%3Aflandmark)
@@ -190,6 +191,7 @@ Each child module in turn relies by default on the included [`cppbuild.sh` scrip
  * librealsense 1.12.x  https://github.com/IntelRealSense/librealsense
  * librealsense2 2.53.x  https://github.com/IntelRealSense/librealsense
  * videoInput 0.200  https://github.com/ofTheo/videoInput/
+ * NDI 6  http://ndi.video/
  * ARToolKitPlus 2.3.1  https://launchpad.net/artoolkitplus
  * Chilitags  https://github.com/chili-epfl/chilitags
  * flandmark 1.07  https://github.com/uricamic/flandmark
