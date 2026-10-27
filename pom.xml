@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.bytedeco</groupId>
   <artifactId>javacpp-presets</artifactId>
-  <version>1.5.15-SNAPSHOT</version>
+  <version>1.5.13</version>
   <packaging>pom</packaging>
 
   <name>JavaCPP Presets</name>
@@ -596,6 +596,7 @@
         <module>librealsense</module>
         <module>librealsense2</module>
         <module>videoinput</module>
+        <module>ndi</module>
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
@@ -1202,6 +1203,7 @@
         <module>libfreenect</module>
         <module>librealsense</module>
         <module>librealsense2</module>
+        <module>ndi</module>
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
@@ -1403,6 +1405,7 @@
         <module>libfreenect2</module>
         <module>librealsense</module>
         <module>librealsense2</module>
+        <module>ndi</module>
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
@@ -1488,6 +1491,7 @@
       <modules>
         <module>opencv</module>
         <module>ffmpeg</module>
+        <module>ndi</module>
         <module>lz4</module>
         <module>dnnl</module>
         <module>openblas</module>
@@ -1551,6 +1555,7 @@
         <module>libfreenect2</module>
         <module>librealsense</module>
         <module>librealsense2</module>
+        <module>ndi</module>
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
@@ -1741,6 +1746,7 @@
         <module>librealsense</module>
         <module>librealsense2</module>
         <module>videoinput</module>
+        <module>ndi</module>
         <module>artoolkitplus</module>
         <module>chilitags</module>
         <module>flandmark</module>
