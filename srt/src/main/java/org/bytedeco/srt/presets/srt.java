@@ -19,17 +19,17 @@ import org.bytedeco.javacpp.tools.Logger;
     value = {
         @Platform( value="macosx-x86_64",
         includepath = {"/usr/include/",
-        		   "/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk/usr/include/c++/v1",
+                   "/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk/usr/include/c++/v1",
                    "/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk/usr/include/",
                    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/"
             },
         include = {
-        		"sys/_types/_iovec_t.h",
+                "sys/_types/_iovec_t.h",
                 "sys/socket.h",
                 "sys/syslog.h",
                 "srt/logging_api.h",
-        		"srt/srt.h"
-        		}
+                "srt/srt.h"
+                }
           , link = "srt@.1.5"
 
     ),
@@ -85,49 +85,49 @@ public class srt implements InfoMapper
         .put(new Info("sa_family_t", "__uint8_t")
                 .cast().valueTypes("byte").pointerTypes("BytePointer", "ByteBuffer", "byte[]"))
         .put(new Info(
-        		//"nl_item",
-        		"socklen_t"
-        		//, "useconds_t", "errno_t", "blksize_t",
+                //"nl_item",
+                "socklen_t"
+                //, "useconds_t", "errno_t", "blksize_t",
                // "dev_t", "id_t"
-        		, "gid_t", "uid_t"
-        		, "pid_t"
-        		//, "cpu_type_t", "cpu_subtype_t", "sigset_t",
+                , "gid_t", "uid_t"
+                , "pid_t"
+                //, "cpu_type_t", "cpu_subtype_t", "sigset_t",
                // "__darwin_suseconds_t", "__darwin_sigset_t", "exception_behavior_t", "exception_mask_t",
                // "mach_port_t", "thread_state_flavor_t", "integer_t", "__int32_t", "__uint32_t"
-        		, "u_int32_t"
-        		, "sae_associd_t"
-        		, "sae_connid_t"
+                , "u_int32_t"
+                , "sae_associd_t"
+                , "sae_connid_t"
                 ,"in_addr_t"
 
                 )
           .cast().valueTypes("int").pointerTypes("IntPointer", "IntBuffer", "int[]"))
           .put(new Info(
-        		  //"greg_t", "blkcnt_t", "blkcnt64_t",
+                  //"greg_t", "blkcnt_t", "blkcnt64_t",
                 "__off_t",
                 "__off64_t",
                 "__kernel_size_t",
                 //"rlim64_t",
                 //"__darwin_ino64_t",
                 "__int64_t"
-        		  //, "__uint64_t", "u_int64_t"
-        		  )
+                  //, "__uint64_t", "u_int64_t"
+                  )
           .cast().valueTypes("long").pointerTypes("LongPointer", "LongBuffer", "long[]"))
           .put(new Info(
-        		  //"nlink_t", "mode_t", "__int16_t",
-        		  "__uint16_t"
+                  //"nlink_t", "mode_t", "__int16_t",
+                  "__uint16_t"
                   ,"in_port_t"
-        		  //, "u_int16_t"
-        		  )
+                  //, "u_int16_t"
+                  )
                   .cast().valueTypes("short").pointerTypes("ShortPointer", "ShortBuffer", "short[]"))
           .put(new Info(
-        		  //"__DARWIN_ALIAS", "__DARWIN_STRUCT_STAT64_TIMES", "__DARWIN_STRUCT_STAT64", "_NLS_PRIVATE",
+                  //"__DARWIN_ALIAS", "__DARWIN_STRUCT_STAT64_TIMES", "__DARWIN_STRUCT_STAT64", "_NLS_PRIVATE",
                   //"_STRUCT_TIMESPEC", "_STRUCT_TIMEVAL", "_STRUCT_SIGALTSTACK", "_STRUCT_UCONTEXT",
                   "__extension__","__extern_inline" , "__ss_aligntype",
                   //"__header_always_inline", "__inline", "__mode__",
                   //"__nonnull", "_Nullable",
                   "__restrict"
-        		  ,
-        		  "SRT_API"
+                  ,
+                  "SRT_API"
                   ,"__REDIRECT"
                  // ,
                  // "__darwin_va_list"
@@ -148,8 +148,8 @@ public class srt implements InfoMapper
 
 
           .put(new Info("_SS_PAD2SIZE","_SS_PADSIZE"
-        		  //, "WCOREFLAG"
-        		  ).cppTypes("int").translate(false))
+                  //, "WCOREFLAG"
+                  ).cppTypes("int").translate(false))
            .put(new Info("socket.h").linePatterns("__BEGIN_DECLS", "__END_DECLS").skip())
            .put(new Info("cmsghdr::__flexarr"//, "getwd", "getpw", "lchmod", "mktemp", "revoke", "setlogin",
                            //  "sigblock", "siggetmask", "sigsetmask", "sigreturn", "sigstack(sigstack*, sigstack*)"
