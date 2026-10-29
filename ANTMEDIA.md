@@ -124,3 +124,43 @@ native binaries:
 The unclassified jar contains the `.class` files. The classified jar contains
 the platform-specific native resources.
 
+
+## FFmpeg release packs with GitHub Actions
+
+Use **Actions → Release Ant Media FFmpeg → Run workflow**, selecting
+`ams-master`. The workflow must first be merged into the default branch.
+It accepts a version such as `8.1-1.5.13-antmedia1`; the JavaCPP parent remains
+at the released 1.5.13 baseline. Increment the Ant Media revision for each new
+release. Version preparation is confined to the three FFmpeg POMs in the
+runner checkout; it does not rewrite the versions of other modules.
+
+The pack contains regular and GPL native artifacts for Android ARM64/x86_64,
+Linux ARM64/x86_64, and macOS ARM64/x86_64. Windows is excluded from the build
+matrix and from the published `ffmpeg-platform` and `ffmpeg-platform-gpl`
+dependencies and module descriptors. The default configuration retains
+upstream NVIDIA decoder/encoder support; optional CUDA/NPP builds are disabled
+and are not validated by this workflow.
+
+Leave **publish** unchecked for a build-only run, or check it to publish the
+complete pack after all twelve builds pass. Each build stages its native jar;
+Linux x86_64 supplies the canonical Java bindings, sources, Javadoc, and POM.
+One publisher uploads all classifiers together, followed by both platform
+aggregators, to:
+
+```text
+https://maven.pkg.github.com/ant-media/javacpp-presets
+org.bytedeco:ffmpeg:8.1-1.5.13-antmedia1
+org.bytedeco:ffmpeg-platform:8.1-1.5.13-antmedia1
+org.bytedeco:ffmpeg-platform-gpl:8.1-1.5.13-antmedia1
+```
+
+Authentication uses the workflow's `GITHUB_TOKEN` with `packages: write`;
+no personal publishing token or Central credentials are needed. The parent POM
+is uploaded only if absent. Publishing rejects an existing FFmpeg version.
+GitHub Packages uploads are not transactional: if publishing fails after an
+upload, inspect the package and either remove the incomplete version or choose
+a fresh Ant Media revision before publishing again.
+
+Build outputs remain downloadable as Actions artifacts for 14 days, including
+build-only runs. A build-only run does not publish Maven packages. The existing
+`ffmpeg` workflow continues to serve its upstream CI purpose.

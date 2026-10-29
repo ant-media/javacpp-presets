@@ -1,0 +1,125 @@
+name: Release Ant Media FFmpeg
+run-name: FFmpeg ${{ inputs.version }} (${{ inputs.publish && 'publish' || 'build only' }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: FFmpeg artifact version (keep the JavaCPP parent at 1.5.13)
+        required: true
+        default: 8.1-1.5.13-antmedia1
+        type: string
+      publish:
+        description: Publish the complete pack to GitHub Packages after all builds succeed
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ffmpeg-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      source: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require ams-master and validate the release version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/ams-master
+          python3 .github/scripts/ffmpeg-release.py prepare "$RELEASE_VERSION"
+      - id: source
+        run: echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    name: ${{ matrix.platform }}${{ matrix.ext }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        ext: ['', '-gpl']
+        include:
+          - platform: android-arm64
+            runner: ubuntu-22.04
+          - platform: android-x86_64
+            runner: ubuntu-22.04
+          - platform: linux-arm64
+            runner: ubuntu-22.04
+          - platform: linux-x86_64
+            runner: ubuntu-22.04
+          - platform: macosx-arm64
+            runner: macos-15-intel
+          - platform: macosx-x86_64
+            runner: macos-15-intel
+        platform:
+          - android-arm64
+          - android-x86_64
+          - linux-arm64
+          - linux-x86_64
+          - macosx-arm64
+          - macosx-x86_64
+    env:
+      ANTMEDIA_FFMPEG_RELEASE_VERSION: ${{ inputs.version }}
+      CI_DEPLOY_MODULE: ffmpeg
+      CI_DEPLOY_PLATFORM: ${{ matrix.platform }}
+      CI_DEPLOY_NEED_GCC: '1'
+      CI_DEPLOY_USERNAME: ''
+      CI_DEPLOY_PASSWORD: ''
+      CI_DEPLOY_SETTINGS: ''
+      STAGING_REPOSITORY: ''
+      FFMPEG_NPP: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source }}
+      - uses: ./.github/actions/deploy-ubuntu
+        if: runner.os == 'Linux'
+      - uses: ./.github/actions/deploy-macosx
+        if: runner.os == 'macOS'
+      - name: Collect native classifier and canonical Java artifacts
+        env:
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+          RELEASE_EXTENSION: ${{ matrix.ext }}
+        run: python3 .github/scripts/ffmpeg-release.py collect "$RELEASE_PLATFORM" -- "$RELEASE_EXTENSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ matrix.platform }}${{ matrix.ext }}
+          path: release-bundle/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: inputs.publish
+    needs: [prepare, build]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ANTMEDIA_FFMPEG_RELEASE_VERSION: ${{ inputs.version }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.source }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          server-id: github
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ffmpeg-*
+          path: release-bundle
+          merge-multiple: true
+      - name: Publish all classifiers together, then platform aggregators
+        run: python3 .github/scripts/ffmpeg-release.py publish
