@@ -47,9 +47,8 @@ Do not merge all historical mekya changes indiscriminately: that fork also has
 other modules and older dependency versions outside this fork's current scope.
 Keep generated Java bindings consistent with the native headers used to build.
 
-Run `bash -n` for modified shell scripts and the focused tests in
-`ffmpeg/tests/test_build_modes.py`. Validate Maven metadata and build the native
-module on each affected platform when available. An x86_64 build does not
+Run `bash -n` for modified shell scripts. Validate Maven metadata and build
+the native module on each affected platform when available. An x86_64 build does not
 validate arm64 cross compilation or macOS builds. CUDA/NPP requires the CUDA
 SDK and a separate build/runtime check.
 

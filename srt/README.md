@@ -30,14 +30,6 @@ SRT 1.5.4, but builds its own static SRT dependency rather than using this modul
 The preset and build were originally brought over from mekya commit
 `3d5788081e`; older platform limitations are preserved.
 
-A native loading/socket lifecycle smoke test is included. After packaging:
-
-```bash
-javac -cp "$HOME/.m2/repository/org/bytedeco/javacpp/1.5.13/javacpp-1.5.13.jar:srt/target/srt.jar" -d /tmp/srt-smoke srt/samples/SrtSmokeTest.java
-java -cp "/tmp/srt-smoke:$HOME/.m2/repository/org/bytedeco/javacpp/1.5.13/javacpp-1.5.13.jar:srt/target/srt.jar:srt/target/srt-linux-x86_64.jar" SrtSmokeTest
-```
-
 Generated bindings are target dependent because the preset also parses system
 socket headers. Maven regenerates them under `src/gen/java`; they are not
-checked in. The smoke test checks native loading and socket lifecycle, not SRT
-transport interoperability.
+checked in.

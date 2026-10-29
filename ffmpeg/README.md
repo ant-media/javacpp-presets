@@ -266,8 +266,4 @@ The helpers work from any directory and support `linux-x86_64` and
 They reuse the current configure recipe without downloading/extracting archives,
 reapplying patches, or rebuilding dependencies. Rebuild using the same NPP and
 extension settings as the full build. After dependency, patch, or FFmpeg version
-changes, run a full build again first. Syntax/control-flow checks:
-
-```bash
-python3 ffmpeg/tests/test_build_modes.py
-```
+changes, run a full build again first.
