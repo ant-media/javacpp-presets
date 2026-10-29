@@ -134,15 +134,14 @@ at the released 1.5.13 baseline. Increment the Ant Media revision for each new
 release. Version preparation is confined to the three FFmpeg POMs in the
 runner checkout; it does not rewrite the versions of other modules.
 
-The pack contains regular and GPL native artifacts for Android ARM64/x86_64,
-Linux ARM64/x86_64, and macOS ARM64/x86_64. Windows is excluded from the build
-matrix and from the published `ffmpeg-platform` and `ffmpeg-platform-gpl`
+The pack contains regular and GPL native artifacts for Linux ARM64/x86_64
+and macOS ARM64/x86_64. Android and Windows are excluded from the build matrix and from the published `ffmpeg-platform` and `ffmpeg-platform-gpl`
 dependencies and module descriptors. The default configuration retains
 upstream NVIDIA decoder/encoder support; optional CUDA/NPP builds are disabled
 and are not validated by this workflow.
 
 Leave **publish** unchecked for a build-only run, or check it to publish the
-complete pack after all twelve builds pass. Each build stages its native jar;
+complete pack after all eight builds pass. Each build stages its native jar;
 Linux x86_64 supplies the canonical Java bindings, sources, Javadoc, and POM.
 One publisher uploads all classifiers together, followed by both platform
 aggregators, to:

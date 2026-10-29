@@ -48,10 +48,6 @@ jobs:
       matrix:
         ext: ['', '-gpl']
         include:
-          - platform: android-arm64
-            runner: ubuntu-22.04
-          - platform: android-x86_64
-            runner: ubuntu-22.04
           - platform: linux-arm64
             runner: ubuntu-22.04
           - platform: linux-x86_64
@@ -61,8 +57,6 @@ jobs:
           - platform: macosx-x86_64
             runner: macos-15-intel
         platform:
-          - android-arm64
-          - android-x86_64
           - linux-arm64
           - linux-x86_64
           - macosx-arm64

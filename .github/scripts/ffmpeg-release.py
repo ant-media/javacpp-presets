@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare, stage, and publish this fork's non-Windows FFmpeg release pack."""
+"""Prepare, stage, and publish this fork's Linux/macOS FFmpeg release pack."""
 import argparse
 import base64
 import os
@@ -16,8 +16,7 @@ NS = 'http://maven.apache.org/POM/4.0.0'
 ET.register_namespace('', NS)
 N = {'m': NS}
 ROOT = Path(__file__).resolve().parents[2]
-PLATFORMS = ('android-arm64', 'android-x86_64', 'linux-arm64', 'linux-x86_64',
-             'macosx-arm64', 'macosx-x86_64')
+PLATFORMS = ('linux-arm64', 'linux-x86_64', 'macosx-arm64', 'macosx-x86_64')
 CLASSIFIERS = tuple(p + ext for p in PLATFORMS for ext in ('', '-gpl'))
 REPOSITORY = 'https://maven.pkg.github.com/ant-media/javacpp-presets'
 DEPLOY = 'org.apache.maven.plugins:maven-deploy-plugin:3.1.4'
@@ -46,13 +45,15 @@ def prepare(version):
         dependencies = project.find('m:dependencies', N)
         for dependency in list(dependencies):
             classifier = dependency.findtext('m:classifier', namespaces=N) or ''
-            if 'windows' in classifier:
+            if any(excluded in classifier for excluded in ('android', 'windows')):
                 dependencies.remove(dependency)
         for entry in project.iter():
             if entry.tag.endswith('Class-Path') and entry.text:
-                entry.text = ' '.join(part for part in entry.text.split() if 'windows' not in part)
+                entry.text = ' '.join(part for part in entry.text.split()
+                                      if not any(excluded in part for excluded in ('android', 'windows')))
             if entry.tag.endswith('moduleInfoSource') and entry.text:
-                entry.text = '\n'.join(line for line in entry.text.splitlines() if '.windows.' not in line)
+                entry.text = '\n'.join(line for line in entry.text.splitlines()
+                                       if not any(excluded in line for excluded in ('.android.', '.windows.')))
         repositories = project.find('m:repositories', N)
         if repositories is None:
             repositories = element(project, 'repositories')
