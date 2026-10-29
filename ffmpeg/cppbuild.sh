@@ -7,8 +7,32 @@ if [[ -z "$PLATFORM" ]]; then
     exit
 fi
 
+# Ant Media builds can opt into CUDA/NPP scaling without requiring CUDA on all hosts.
+FFMPEG_REBUILD=${FFMPEG_REBUILD:-0}
+FFMPEG_NPP=${FFMPEG_NPP:-0}
+if [[ "$FFMPEG_REBUILD" == 1 || "$FFMPEG_NPP" == 1 ]]; then
+    case "$PLATFORM" in
+        linux-x86_64|linux-arm64) ;;
+        *) echo "FFmpeg rebuild/NPP supports linux-x86_64 and linux-arm64 only" >&2; exit 1 ;;
+    esac
+fi
+if [[ "$FFMPEG_NPP" == 1 ]]; then
+    CUDA_PATH=${CUDA_PATH:-/usr/local/cuda}
+    CUDA_LIBDIR=${CUDA_LIBDIR:-$CUDA_PATH/lib64}
+    if [[ ! -f "$CUDA_PATH/include/npp.h" || ! -x "$CUDA_PATH/bin/nvcc" || ! -d "$CUDA_LIBDIR" ]]; then
+        echo "NPP requires CUDA headers, nvcc, and libraries; set CUDA_PATH/CUDA_LIBDIR" >&2
+        exit 1
+    fi
+    export PATH="$CUDA_PATH/bin:$PATH"
+    export CPATH="$CUDA_PATH/include${CPATH:+:$CPATH}"
+    export LIBRARY_PATH="$CUDA_LIBDIR${LIBRARY_PATH:+:$LIBRARY_PATH}"
+fi
+
 DISABLE="--disable-iconv --disable-opencl --disable-sdl2 --disable-bzlib --disable-lzma --disable-linux-perf --disable-xlib"
 ENABLE="--enable-shared --enable-version3 --enable-runtime-cpudetect --enable-zlib --enable-libmp3lame --enable-libspeex --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libvo-amrwbenc --enable-openssl --enable-libopenh264 --enable-libvpx --enable-libfreetype --enable-libharfbuzz --enable-libopus --enable-libxml2 --enable-libsrt --enable-libwebp --enable-libaom --enable-libsvtav1 --enable-libzimg"
+if [[ "$FFMPEG_NPP" == 1 ]]; then
+    ENABLE="$ENABLE --enable-cuda-nvcc --enable-libnpp --enable-nonfree"
+fi
 ENABLE_VULKAN="--enable-vulkan --enable-hwaccel=h264_vulkan --enable-hwaccel=hevc_vulkan --enable-hwaccel=av1_vulkan"
 
 if [[ "$EXTENSION" == *gpl ]]; then
@@ -54,6 +78,7 @@ FFMPEG_VERSION=8.1
 # Vendored snapshot of https://code.ffmpeg.org/FFmpeg/FFmpeg/pulls/20847.patch
 # with the unsupported FFmpeg 8.1 Changelog hunk already removed.
 V4L2_REQUEST_PATCH=ffmpeg-v4l2-request-20847-ffmpeg-8.1.patch
+if [[ "$FFMPEG_REBUILD" != 1 ]]; then
 download https://www.nasm.us/pub/nasm/releasebuilds/$NASM_VERSION/nasm-$NASM_VERSION.tar.gz nasm-$NASM_VERSION.tar.gz
 download https://zlib.net/$ZLIB.tar.gz $ZLIB.tar.gz
 download https://downloads.sourceforge.net/project/lame/lame/3.100/$LAME.tar.gz $LAME.tar.gz
@@ -79,9 +104,12 @@ download https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v$SVTAV1_VERSION/SVT-
 download https://github.com/sekrit-twc/zimg/archive/refs/tags/release-$ZIMG_VERSION.tar.gz zimg-release-$ZIMG_VERSION.tar.gz
 download https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2 ffmpeg-$FFMPEG_VERSION.tar.bz2
 
+fi
+
 mkdir -p $PLATFORM$EXTENSION
 cd $PLATFORM$EXTENSION
 INSTALL_PATH=`pwd`
+if [[ "$FFMPEG_REBUILD" != 1 ]]; then
 echo "Decompressing archives..."
 tar --totals -xzf ../nasm-$NASM_VERSION.tar.gz
 tar --totals -xzf ../$ZLIB.tar.gz
@@ -120,9 +148,12 @@ make -j $MAKEJ V=0
 make install
 cd ..
 
+fi
+
 export PATH=$INSTALL_PATH/bin:$PATH
 export PKG_CONFIG_PATH=$INSTALL_PATH/lib/pkgconfig/
 
+if [[ "$FFMPEG_REBUILD" != 1 ]]; then
 patch -Np1 -d $LAME < ../../lame.patch
 # patch -Np1 -d $OPENSSL < ../../openssl-android.patch
 patch -Np1 -d $OPENSSL < ../../openssl-windows.patch
@@ -136,6 +167,13 @@ sedinplace 's/CMAKE_C_COMPILER_ID MATCHES "Clang"/FALSE/g' SVT-AV1-*/CMakeLists.
 # sedinplace 's/defined(__linux__)/defined(__linux__) \&\& !defined(__ANDROID__)/g' SVT-AV1-*/Source/Lib/Common/Codec/EbThreads.h
 sedinplace '/ANativeWindow_release/d' ffmpeg-*/libavutil/hwcontext_mediacodec.c
 sedinplace 's/#define MAX_SLICES 32/#define MAX_SLICES 256/g' ffmpeg-*/libavcodec/h264dec.h
+
+else
+    if [[ ! -f "ffmpeg-$FFMPEG_VERSION/ffbuild/config.mak" || ! -d include || ! -d lib ]]; then
+        echo "Rebuild requires a completed FFmpeg $FFMPEG_VERSION build for $PLATFORM$EXTENSION" >&2
+        exit 1
+    fi
+fi
 
 case $PLATFORM in
     android-arm)
@@ -986,6 +1024,7 @@ EOF
 
     linux-x86_64)
         export AS="nasm"
+        if [[ "$FFMPEG_REBUILD" != 1 ]]; then
         echo ""
         echo "--------------------"
         echo "Building zimg"
@@ -1134,8 +1173,15 @@ EOF
         make -j $MAKEJ
         make install
         cd ..
-        cd ../ffmpeg-$FFMPEG_VERSION
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-libdrm --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --enable-libpulse --cc="gcc -m64" --cxx="g++ -m64" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || cat ffbuild/config.log
+        else
+            LIBS=
+            if [[ -f "$INSTALL_PATH/lib/pkgconfig/libmfx.pc" ]]; then
+                ENABLE="$ENABLE --enable-libmfx"
+                LIBS="-lva-drm -lva-x11 -lva"
+            fi
+        fi
+        cd "$INSTALL_PATH/ffmpeg-$FFMPEG_VERSION"
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-libdrm --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --enable-libpulse --cc="gcc -m64" --cxx="g++ -m64" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || { cat ffbuild/config.log; exit 1; }
         make -j $MAKEJ
         make install
         ;;
@@ -1373,7 +1419,7 @@ EOF
         cd ../ffmpeg-$FFMPEG_VERSION
         if [ $CROSSCOMPILE -eq 1 ]
         then
-          if [[ ! -d $USERLAND_PATH ]]; then
+          if [[ ! -d ${USERLAND_PATH:-} ]]; then
             USERLAND_PATH="$(which arm-linux-gnueabihf-gcc | grep -o '.*/tools/')../userland"
           fi
           LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-omx --enable-mmal --enable-omx-rpi --enable-pthreads --enable-libxcb --enable-libpulse --cc="arm-linux-gnueabihf-gcc" --cxx="arm-linux-gnueabihf-g++" --extra-cflags="$CFLAGS -I$USERLAND_PATH/ -I$USERLAND_PATH/interface/vmcs_host/khronos/IL/ -I$USERLAND_PATH/host_applications/linux/libs/bcm_host/include/ -I../include/ -I../include/libxml2 -I../include/mfx/ -I../include/svt-av1" --extra-ldflags="-L$USERLAND_PATH/build/lib/ -L../lib/" --extra-libs="-lstdc++ -lasound -lvchiq_arm -lvcsm -lvcos -lpthread -ldl -lz -lm" --enable-cross-compile --arch=armhf --target-os=linux --cross-prefix="arm-linux-gnueabihf-" || cat ffbuild/config.log
@@ -1385,12 +1431,13 @@ EOF
         ;;
 
     linux-arm64)
-        tar --totals -xjf ../alsa-lib-$ALSA_VERSION.tar.bz2
 
         export CFLAGS="-march=armv8-a+crypto -mcpu=cortex-a57+crypto -I$INSTALL_PATH/include -L$INSTALL_PATH/lib"
         export CXXFLAGS="$CFLAGS"
         export CPPFLAGS="$CFLAGS"
         HOST_ARCH="$(uname -m)"
+        if [[ "$FFMPEG_REBUILD" != 1 ]]; then
+        tar --totals -xjf ../alsa-lib-$ALSA_VERSION.tar.bz2
         echo ""
         echo "--------------------"
         echo "Building zimg"
@@ -1551,11 +1598,12 @@ EOF
         make -j $MAKEJ
         make install
         cd ..
-        cd ../ffmpeg-$FFMPEG_VERSION
-        if [[ ! -d $USERLAND_PATH ]]; then
+        fi
+        cd "$INSTALL_PATH/ffmpeg-$FFMPEG_VERSION"
+        if [[ ! -d ${USERLAND_PATH:-} ]]; then
           USERLAND_PATH="$(which aarch64-linux-gnu-gcc | grep -o '.*/tools/')../userland"
         fi
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-cuda --enable-cuvid --enable-nvenc --enable-omx `#--enable-mmal` --enable-omx-rpi --enable-pthreads --enable-libxcb --enable-libpulse --cc="aarch64-linux-gnu-gcc" --cxx="aarch64-linux-gnu-g++" --extra-cflags="$CFLAGS -I$USERLAND_PATH/ -I$USERLAND_PATH/interface/vmcs_host/khronos/IL/ -I$USERLAND_PATH/host_applications/linux/libs/bcm_host/include/ -I../include/ -I../include/libxml2 -I../include/mfx/ -I../include/svt-av1 -fno-aggressive-loop-optimizations" --extra-ldflags="-Wl,-z,relro -L$USERLAND_PATH/build/lib/ -L../lib/" --extra-libs="-lstdc++ -lasound -lvchiq_arm `#-lvcsm` -lvcos -lpthread -ldl -lz -lm" --enable-cross-compile --arch=arm64 --target-os=linux --cross-prefix="aarch64-linux-gnu-" || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-cuda --enable-cuvid --enable-nvenc --enable-omx `#--enable-mmal` --enable-omx-rpi --enable-pthreads --enable-libxcb --enable-libpulse --cc="aarch64-linux-gnu-gcc" --cxx="aarch64-linux-gnu-g++" --extra-cflags="$CFLAGS -I$USERLAND_PATH/ -I$USERLAND_PATH/interface/vmcs_host/khronos/IL/ -I$USERLAND_PATH/host_applications/linux/libs/bcm_host/include/ -I../include/ -I../include/libxml2 -I../include/mfx/ -I../include/svt-av1 -fno-aggressive-loop-optimizations" --extra-ldflags="-Wl,-z,relro -L$USERLAND_PATH/build/lib/ -L../lib/" --extra-libs="-lstdc++ -lasound -lvchiq_arm `#-lvcsm` -lvcos -lpthread -ldl -lz -lm" --enable-cross-compile --arch=arm64 --target-os=linux --cross-prefix="aarch64-linux-gnu-" || { cat ffbuild/config.log; exit 1; }
         make -j $MAKEJ
         make install
         ;;

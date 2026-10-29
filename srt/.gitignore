@@ -1,0 +1,3 @@
+/target/
+# Generated from SRT and the target platform's system headers during the Maven build.
+/src/gen/

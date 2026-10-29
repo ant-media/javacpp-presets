@@ -38,6 +38,8 @@ import org.bytedeco.javacpp.tools.InfoMapper;
     global = "org.bytedeco.ffmpeg.global.avfilter",
     value = {
         @Platform(cinclude = {"<libavfilter/avfilter.h>", "<libavfilter/buffersink.h>", "<libavfilter/buffersrc.h>", "<libavfilter/version_major.h>", "<libavfilter/version.h>"}, link = "avfilter@.11"),
+        @Platform(value = "linux", preloadpath = {"/usr/local/cuda/lib64", "/usr/local/cuda/targets/aarch64-linux/lib"},
+                  preload = {"nppc@.13", "nppidei@.13", "nppicc@.13", "nppig@.13", "nppif@.13"}),
         @Platform(value = "windows", preload = "avfilter-11")
     }
 )
