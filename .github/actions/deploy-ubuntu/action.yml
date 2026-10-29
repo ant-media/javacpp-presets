@@ -1,4 +1,5 @@
 name: Deploy on Ubuntu
+description: Build JavaCPP presets and their native dependencies for Linux and Android
 runs:
   using: composite
   steps:
@@ -330,6 +331,12 @@ runs:
         git submodule update --init --recursive
         git submodule foreach --recursive 'git reset --hard'
 
+        # Release packs are staged locally and published once by the release workflow.
+        if [[ -n ${ANTMEDIA_FFMPEG_RELEASE_VERSION:-} ]]; then
+          python3 .github/scripts/ffmpeg-release.py prepare "$ANTMEDIA_FFMPEG_RELEASE_VERSION"
+          MAVEN_PHASE=package
+        fi
+
         if [[ -n ${CI_DEPLOY_NEED_GRADLE:-} ]]; then
           echo Executing Gradle $GRADLE_TASK ${{ matrix.options }} $CI_DEPLOY_OPTIONS on $MAKEJ processors
           export GRADLE_OPTIONS="-Dorg.gradle.jvmargs=-Xmx2048m -PjavacppPlatform=$CI_DEPLOY_PLATFORM -PjavacppPlatformExtension=${{ matrix.ext }} ${{ matrix.options }} $CI_DEPLOY_OPTIONS --info"
@@ -353,7 +360,11 @@ runs:
           export FILE=${{ matrix.file }}
           export PROFILE=${{ matrix.profile }}
           export MAVEN_OPTS="-Xss2m -Xmx4g"
-          export MAVEN_OPTIONS="clean $MAVEN_PHASE clean -B -U -e -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.count=3 -Djavacpp.platform=$CI_DEPLOY_PLATFORM -Djavacpp.platform.extension=$EXT $MAVEN_OPTIONS $CI_DEPLOY_OPTIONS"
+          FINAL_CLEAN=clean
+          if [[ -n ${ANTMEDIA_FFMPEG_RELEASE_VERSION:-} ]]; then
+            FINAL_CLEAN=
+          fi
+          export MAVEN_OPTIONS="clean $MAVEN_PHASE $FINAL_CLEAN -B -U -e -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.count=3 -Djavacpp.platform=$CI_DEPLOY_PLATFORM -Djavacpp.platform.extension=$EXT $MAVEN_OPTIONS $CI_DEPLOY_OPTIONS"
           for i in {1..5}; do STATUS=0; mvn $MAVEN_OPTIONS -f=$CI_DEPLOY_MODULE/$FILE -P=$PROFILE && break || STATUS=$? && sleep 60; done; (exit $STATUS)
         fi
         df -h
