@@ -1,10 +1,26 @@
 
+ * Map `AVVulkanDeviceContext`, `AVVulkanFramesContext`, and `AVVkFrame` from `hwcontext_vulkan.h` and enable Vulkan on Android in presets for FFmpeg ([pull #1818](https://github.com/bytedeco/javacpp-presets/pull/1818))
+ * Fix issues with `hid_t` and `hdf5_java` in presets for HDF5 ([pull #1814](https://github.com/bytedeco/javacpp-presets/pull/1814))
+ * Bundle missing `cudnn_ext` and `cudnn_engines_tensor_ir` libraries for `cuda-redist-cudnn` artifact ([issue #1805](https://github.com/bytedeco/javacpp-presets/issues/1805))
+ * Enable Rockchip Media Process Platform (RKMPP) support for FFmpeg ([pull #1804](https://github.com/bytedeco/javacpp-presets/pull/1804))
+ * Make ONNX Runtime’s DNNL and OpenVINO dependencies optional ([pull #1802](https://github.com/bytedeco/javacpp-presets/pull/1802))
+ * Map full C API of OpenVINO ([pull #1801](https://github.com/bytedeco/javacpp-presets/pull/1801))
+ * Enable OpenCL acceleration for FFmpeg ([issue #1800](https://github.com/bytedeco/javacpp-presets/pull/1800))
+ * Upgrade presets for HDF5 2.2.0, PyTorch 2.14.0, CUDA 13.4.2, cuDNN 9.26.0.51, NCCL 2.31.2, TensorRT 11.3.0.99
+
+### August 10, 2026 version 1.5.14
+ * Include missing `refcount.h` header file in presets for CPython ([issue #1798](https://github.com/bytedeco/javacpp-presets/issues/1798))
+ * Bundle missing `cudnn_engines_tensor_ir` library for `cuda-redist-cudnn` artifact ([pull #1785](https://github.com/bytedeco/javacpp-presets/pull/1785))
+ * Add missing mappings for `c10::ArrayRef<double>` in presets for PyTorch ([issue #1770](https://github.com/bytedeco/javacpp-presets/issues/1770))
+ * Reduce overhead of `Tensor` factory methods `create()`, `createBuffer()`, and `createIndexer()` for PyTorch ([issue #1770](https://github.com/bytedeco/javacpp-presets/issues/1770))
+ * Enable support for OpenVINO in presets for ONNX Runtime ([pull #1769](https://github.com/bytedeco/javacpp-presets/pull/1769))
+ * Add presets for OpenVINO 2026.2.1 ([pull #1752](https://github.com/bytedeco/javacpp-presets/pull/1752))
  * Allow creating new `std::vector<torch::optim::OptimizerParamGroup>` in presets for PyTorch ([issue #1756](https://github.com/bytedeco/javacpp-presets/issues/1756))
  * Add V4L2 Request API hwaccels in presets for FFmpeg ([pull #1755](https://github.com/bytedeco/javacpp-presets/pull/1755))
  * Add new `SampleOnnxMNIST` in samples for TensorRT ([pull #1742](https://github.com/bytedeco/javacpp-presets/pull/1742))
  * Fix loading issues with `libomp.dylib` and `libiomp5.dylib` for DNNL and PyTorch on Mac
  * Include `model_package_loader.h` header file in presets for PyTorch ([issue #1729](https://github.com/bytedeco/javacpp-presets/issues/1729))
- * Upgrade presets for FFmpeg 8.1, OpenBLAS 0.3.32, CUDA 13.2.1, cuDNN 9.21.1.3, NCCL 2.30.4, nvCOMP 5.2.0.10, CPython 3.14.4, NumPy 2.4.4, SciPy 1.17.1, LLVM 22.1.1, PyTorch 2.11.0, TensorFlow Lite 2.21.0, TensorRT 10.16.1.11, Triton Inference Server 2.68.0, ONNX 1.21.0, ONNX Runtime 1.25.1 ([pull #1753](https://github.com/bytedeco/javacpp-presets/pull/1753)), and their dependencies
+ * Upgrade presets for OpenCV 4.14.0, FFmpeg 8.1.2, MKL 2026.1.0, DNNL 3.13, OpenBLAS 0.3.34, CMINPACK 1.3.14, CUDA 13.3.1, cuDNN 9.25.0.15, NCCL 2.30.7, nvCOMP 5.3.0.16, NVIDIA Video Codec SDK 13.1.15, OpenCL 3.1.1, FFTW 3.3.11, CPython 3.14.7, NumPy 2.5.1, SciPy 1.18.0, LLVM 22.1.8, libffi 3.7.1, Tesseract 5.5.3, PyTorch 2.13.0, TensorFlow Lite 2.21.0, TensorRT 11.2.1.2, Triton Inference Server 2.71.0, ONNX 1.22.0, ONNX Runtime 1.28.0 ([pull #1791](https://github.com/bytedeco/javacpp-presets/pull/1791)), and their dependencies
  * Compile classes with `parameters` bumping minimum requirements to Java SE 8 and Android 7.0 ([issue #1739](https://github.com/bytedeco/javacpp-presets/issues/1739))
 
 ### February 22, 2026 version 1.5.13

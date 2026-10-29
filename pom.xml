@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.bytedeco</groupId>
   <artifactId>javacpp-presets</artifactId>
-  <version>1.5.14-SNAPSHOT</version>
+  <version>1.5.15-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>JavaCPP Presets</name>
@@ -499,6 +499,10 @@
       </activation>
       <repositories>
         <repository>
+          <id>central</id>
+          <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
           <id>central-portal-staging</id>
           <name>Central Portal Staging</name>
           <url>https://central.sonatype.com/api/v1/publisher/deployments/download/</url>
@@ -511,6 +515,10 @@
         </repository>
       </repositories>
       <pluginRepositories>
+        <pluginRepository>
+          <id>central</id>
+          <url>https://repo.maven.apache.org/maven2</url>
+        </pluginRepository>
         <pluginRepository>
           <id>central-portal-staging</id>
           <name>Central Portal Staging</name>
@@ -629,6 +637,7 @@
         <module>depthai</module>
         <module>onnx</module>
         <module>ngraph</module>
+        <module>openvino</module>
         <module>onnxruntime</module>
         <module>tvm</module>
         <module>bullet</module>
@@ -1435,6 +1444,7 @@
         <module>depthai</module>
         <module>onnx</module>
         <module>ngraph</module>
+        <module>openvino</module>
         <module>onnxruntime</module>
         <module>tvm</module>
         <module>bullet</module>
@@ -1499,6 +1509,7 @@
         <module>sentencepiece</module>
         <module>tensorflow-lite</module>
         <module>onnx</module>
+        <module>openvino</module>
         <module>onnxruntime</module>
         <module>systems</module>
       </modules>
@@ -1767,6 +1778,7 @@
         <module>ale</module>
         <module>depthai</module>
         <module>onnx</module>
+        <module>openvino</module>
         <module>onnxruntime</module>
         <module>tvm</module>
         <module>bullet</module>

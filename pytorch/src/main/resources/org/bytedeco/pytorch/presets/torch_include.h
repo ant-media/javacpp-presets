@@ -13,11 +13,13 @@
 // - and some exceptions commented below
 #include "torch/csrc/utils/python_stub.h"
 
-#include "torch/headeronly/macros/cmake_macros.h"
-#include "torch/headeronly/macros/Export.h"
-#include "torch/headeronly/macros/Macros.h"
+
+#include <torch/headeronly/macros/cmake_macros.h>
+#include <torch/headeronly/macros/Export.h>
+#include <torch/headeronly/macros/Macros.h>
 #include <torch/headeronly/util/HeaderOnlyArrayRef.h>
-#include "torch/headeronly/util/bit_cast.h"
+#include <torch/headeronly/util/bit_cast.h>
+#include <torch/headeronly/util/complex_utils.h>
 #include <torch/headeronly/util/floating_point_utils.h>
 #include <torch/headeronly/util/BFloat16.h>
 #include <torch/headeronly/util/Float4_e2m1fn_x2.h>
@@ -38,6 +40,7 @@
 #include <torch/headeronly/core/Layout.h>
 #include <torch/headeronly/core/MemoryFormat.h>
 #include <torch/headeronly/core/ScalarType.h>
+#include <torch/headeronly/core/enum_tag.h>
 
 #include "c10/macros/cmake_macros.h"
 #include "c10/macros/Export.h"
@@ -51,6 +54,7 @@
 // #include "c10/util/string_view.h" // Not mapped. Using custom adapter instead.
 #include "c10/util/StringUtil.h"
 #include "c10/util/Exception.h"
+#include "c10/util/ScopeExit.h"
 #include "c10/core/Device.h"
 #include "c10/core/DeviceCapability.h"
 #include "c10/core/DispatchKey.h"
@@ -63,7 +67,7 @@
 #include "c10/core/DispatchKeySet.h"
 #include "c10/core/Backend.h"
 #include "c10/core/Layout.h"
-#include "c10/util/AlignOf.h"
+// #include "c10/util/AlignOf.h"
 #include "c10/util/SmallVector.h"
 #include "c10/util/ArrayRef.h"
 #include "c10/core/MemoryFormat.h"
@@ -80,7 +84,7 @@
 #include "c10/util/Float8_e4m3fnuz-inl.h"
 #include "c10/util/Float8_e4m3fnuz.h"
 #include "c10/util/complex_math.h"
-#include "c10/util/complex_utils.h"
+//#include "c10/util/complex_utils.h"
 #include "c10/util/complex.h"
 #include "c10/util/Half-inl.h"
 #include "c10/util/Half.h"
@@ -114,9 +118,10 @@
 #include "c10/util/ThreadLocalDebugInfo.h"
 #include "c10/util/UniqueVoidPtr.h"
 #include "c10/core/Allocator.h"
-#include "c10/core/impl/COW.h"
+// #include "c10/core/impl/COW.h"
 //#include "c10/core/impl/COWDeleter.h"
 #include "c10/util/python_stub.h"
+#include "c10/core/StorageMaterializer.h"
 #include "c10/core/StorageImpl.h"
 #include "c10/util/ExclusivelyOwned.h"
 #include "c10/core/Storage.h"
@@ -128,7 +133,7 @@
 #include "c10/core/SymIntArrayRef.h"
 #include "c10/core/DefaultDtype.h"
 #include "c10/core/TensorOptions.h"
-#include "c10/core/impl/HermeticPyObjectTLS.h"
+// #include "c10/core/impl/HermeticPyObjectTLS.h"
 #include "c10/core/impl/PyInterpreter.h"
 #include "c10/core/impl/PyObjectSlot.h"
 #include "c10/core/impl/SizesAndStrides.h"
@@ -148,8 +153,8 @@
 #include "ATen/core/Generator.h"
 // #include "ATen/core/DeprecatedTypeProperties.h" // Deprecated
 #include "ATen/core/symbol.h"
-#include "ATen/core/Dimname.h"
-#include "ATen/core/NamedTensor.h"
+// #include "ATen/core/Dimname.h"
+// #include "ATen/core/NamedTensor.h"
 #include "ATen/core/QuantizerBase.h"
 #include "ATen/core/TensorAccessor.h"
 #include "c10/util/ExclusivelyOwnedTensorTraits.h"
@@ -165,7 +170,7 @@
 #include "c10/util/hash.h"
 #include "torch/csrc/autograd/edge.h"
 #include "torch/csrc/autograd/forward_grad.h"
-#include "ATen/NamedTensor.h"
+// #include "ATen/NamedTensor.h"
 #include "ATen/core/ivalue_to.h"
 #include "ATen/core/qualified_name.h"
 #include "ATen/core/type_ptr.h"
@@ -197,10 +202,10 @@
 #include "ATen/core/List.h"
 #include "ATen/core/IListRef_inl.h"
 #include "ATen/core/IListRef.h"
-#include "ATen/WrapDimUtils.h"
-#include "ATen/TensorNames.h"
+// #include "ATen/WrapDimUtils.h"
+// #include "ATen/TensorNames.h"
 // #include "ATen/WrapDimUtilsMulti.h" // Windows-specific
-#include "ATen/NamedTensorUtils.h"
+// #include "ATen/NamedTensorUtils.h"
 #include "ATen/core/VariableHooksInterface.h"
 #include "torch/csrc/autograd/variable.h"
 #include "torch/csrc/autograd/autograd.h"
@@ -318,9 +323,9 @@
 #include "ATen/ops/affine_grid_generator_backward.h"
 #include "ATen/ops/alias.h"
 #include "ATen/ops/alias_copy.h"
-#include "ATen/ops/align_as.h"
-#include "ATen/ops/align_tensors.h"
-#include "ATen/ops/align_to.h"
+// #include "ATen/ops/align_as.h"
+// #include "ATen/ops/align_tensors.h"
+// #include "ATen/ops/align_to.h"
 #include "ATen/ops/all.h"
 #include "ATen/ops/allclose.h"
 #include "ATen/ops/alpha_dropout.h"
@@ -400,7 +405,7 @@
 #include "ATen/ops/chain_matmul.h"
 #include "ATen/ops/chalf.h"
 #include "ATen/ops/channel_shuffle.h"
-#include "ATen/ops/cholesky.h"
+// #include "ATen/ops/cholesky.h"
 #include "ATen/ops/cholesky_inverse.h"
 #include "ATen/ops/cholesky_solve.h"
 #include "ATen/ops/choose_qparams_optimized.h"
@@ -915,7 +920,7 @@
 #include "ATen/ops/q_per_channel_zero_points.h"
 #include "ATen/ops/q_scale.h"
 #include "ATen/ops/q_zero_point.h"
-#include "ATen/ops/qr.h"
+// #include "ATen/ops/qr.h"
 #include "ATen/ops/qscheme.h"
 #include "ATen/ops/quantile.h"
 #include "ATen/ops/quantize_per_channel.h"
@@ -943,7 +948,7 @@
 #include "ATen/ops/real.h"
 #include "ATen/ops/reciprocal.h"
 #include "ATen/ops/record_stream.h"
-#include "ATen/ops/refine_names.h"
+// #include "ATen/ops/refine_names.h"
 #include "ATen/ops/reflection_pad1d.h"
 #include "ATen/ops/reflection_pad1d_backward.h"
 #include "ATen/ops/reflection_pad2d.h"
@@ -953,7 +958,7 @@
 #include "ATen/ops/relu.h"
 #include "ATen/ops/relu6.h"
 #include "ATen/ops/remainder.h"
-#include "ATen/ops/rename.h"
+// #include "ATen/ops/rename.h"
 #include "ATen/ops/renorm.h"
 #include "ATen/ops/repeat.h"
 #include "ATen/ops/repeat_interleave.h"
@@ -1485,6 +1490,8 @@
 #include "torch/csrc/distributed/c10d/Types.hpp"
 #include "torch/csrc/distributed/c10d/Utils.hpp"
 #include "torch/csrc/distributed/c10d/Work.hpp"
+#include "torch/csrc/distributed/c10d/Hooks.hpp"
+#include "torch/csrc/distributed/c10d/Window.hpp"
 #include "torch/csrc/distributed/c10d/debug.h"
 #include "torch/csrc/distributed/c10d/Backend.hpp"
 #include "torch/csrc/distributed/c10d/ProcessGroup.hpp"

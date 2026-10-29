@@ -106,12 +106,12 @@ public class openblas_nolapack implements LoadEnabled, InfoMapper {
                 lib = platform.startsWith("linux") ? "mklml_intel" : "mklml";
                 resources.add("/org/bytedeco/mkldnn/");
             } else if (lib.equals("mkl") || lib.equals("mkl_rt")) {
-                String[] libs = {"iomp5", "libiomp5md", "mkl_core@.2", "mkl_avx@.2", "mkl_avx2@.2", "mkl_avx512@.2", "mkl_avx512_mic@.2",
-                                 "mkl_def@.2", "mkl_mc@.2", "mkl_mc3@.2", "mkl_intel_lp64@.2", "mkl_intel_thread@.2", "mkl_gnu_thread@.2", "mkl_rt@.2"};
+                String[] libs = {"iomp5", "libiomp5md", "mkl_core@.3", "mkl_avx@.3", "mkl_avx2@.3", "mkl_avx10@.3", "mkl_avx512@.3", "mkl_avx512_mic@.3",
+                                 "mkl_def@.3", "mkl_mc@.3", "mkl_mc3@.3", "mkl_intel_lp64@.3", "mkl_intel_thread@.3", "mkl_gnu_thread@.3", "mkl_rt@.3"};
                 for (i = 0; i < libs.length; i++) {
                     preloads.add(i, libs[i] + "#" + libs[i]);
                 }
-                lib = "mkl_rt@.2";
+                lib = "mkl_rt@.3";
                 resources.add("/org/bytedeco/mkl/");
             }
         }
@@ -189,7 +189,7 @@ public class openblas_nolapack implements LoadEnabled, InfoMapper {
             "cblas_cgemm3m", "cblas_zgemm3m", "cblas_bgemm", "cblas_bgemv", "cblas_shgemm",
             "cblas_cgemm_batch_strided", "cblas_dgemm_batch_strided", "cblas_sgemm_batch_strided", "cblas_zgemm_batch_strided", "cblas_sbgemm_batch_strided",
             // broken on Windows
-            "openblas_set_num_threads_local", "openblas_set_threads_callback_function"};
+            "openblas_set_num_threads_local", "openblas_set_threads_callback_function", "openblas_xerbla_handler"};
         for (String f : brokenFunctions) {
             infoMap.put(new Info(f, "LAPACK_" + f, "LAPACK_" + f + "_base", "LAPACKE_" + f, "LAPACKE_" + f + "_work").skip(true));
         }

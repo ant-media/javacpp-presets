@@ -7,7 +7,7 @@ if [[ -z "$PLATFORM" ]]; then
     exit
 fi
 
-OPENCV_VERSION=4.13.0
+OPENCV_VERSION=4.14.0
 download https://github.com/opencv/opencv/archive/$OPENCV_VERSION.tar.gz opencv-$OPENCV_VERSION.tar.gz
 download https://github.com/opencv/opencv_contrib/archive/$OPENCV_VERSION.tar.gz opencv_contrib-$OPENCV_VERSION.tar.gz
 
@@ -72,8 +72,8 @@ tar --totals -xzf ../opencv_contrib-$OPENCV_VERSION.tar.gz
 
 cd opencv_contrib-$OPENCV_VERSION
 patch -Np1 < ../../../opencv_contrib.patch
-patch -Np1 < ../../../opencv_contrib-cudacodec.patch
-patch -Np1 < ../../../opencv_contrib-cuda13.patch
+#patch -Np1 < ../../../opencv_contrib-cudacodec.patch
+#patch -Np1 < ../../../opencv_contrib-cuda13.patch
 
 cd ../opencv-$OPENCV_VERSION
 patch -Np1 < ../../../opencv.patch
@@ -140,7 +140,7 @@ BUILD_CONTRIB_X="-DBUILD_opencv_stereo=OFF -DBUILD_opencv_plot=ON -DBUILD_opencv
 
 GPU_FLAGS="-DWITH_CUDA=OFF"
 if [[ "$EXTENSION" == *gpu ]]; then
-    GPU_FLAGS="-DWITH_CUDA=ON -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON -DCUDA_VERSION=13.2 -DCUDNN_VERSION=9.21 -DCUDA_ARCH_BIN='7.5;8.0;9.0;10.0;12.0' -DCUDA_ARCH_PTX='' -DCUDA_NVCC_FLAGS=--expt-relaxed-constexpr -DCUDA_nppicom_LIBRARY= -DENABLE_CUDA_FIRST_CLASS_LANGUAGE=ON"
+    GPU_FLAGS="-DWITH_CUDA=ON -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON -DCUDA_VERSION=13.4 -DCUDNN_VERSION=9.26 -DCUDA_ARCH_BIN='7.5;8.0;9.0;10.0;12.0' -DCUDA_ARCH_PTX='' -DCUDA_NVCC_FLAGS=--expt-relaxed-constexpr -DCUDA_nppicom_LIBRARY= -DENABLE_CUDA_FIRST_CLASS_LANGUAGE=ON"
 fi
 
 # exclude openblas dependencies

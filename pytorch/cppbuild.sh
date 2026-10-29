@@ -22,6 +22,7 @@ export MAX_JOBS=$MAKEJ
 export USE_CUDA=0
 export USE_CUDNN=0
 export USE_NCCL=0
+export USE_XPU=0
 export USE_NUMPY=0
 export USE_OPENMP=1
 export USE_SYSTEM_NCCL=1
@@ -41,7 +42,7 @@ if [[ $PLATFORM == windows* ]]; then
     export PYTHON_BIN_PATH=$(which python.exe)
 fi
 
-PYTORCH_VERSION=2.11.0
+PYTORCH_VERSION=2.14.0
 
 export PYTORCH_BUILD_VERSION="$PYTORCH_VERSION"
 export PYTORCH_BUILD_NUMBER=1
@@ -84,6 +85,9 @@ git submodule foreach --recursive 'git reset --hard'
 
 # https://github.com/pytorch/pytorch/pull/164570
 #patch -Np1 < ../../../pytorch-cuda.patch
+
+# https://github.com/pytorch/pytorch/pull/189704
+#patch -Np1 < ../../../pytorch-macosx.patch
 
 CPYTHON_HOST_PATH="$INSTALL_PATH/../../../cpython/cppbuild/$PLATFORM/host/"
 CPYTHON_PATH="$INSTALL_PATH/../../../cpython/cppbuild/$PLATFORM/"
@@ -143,7 +147,7 @@ mkdir -p "$PYTHON_INSTALL_PATH"
 
 export CFLAGS="-I$CPYTHON_PATH/include/ -I$PYTHON_LIB_PATH/include/python/"
 export PYTHONNOUSERSITE=1
-$PYTHON_BIN_PATH -m pip install --target=$PYTHON_LIB_PATH setuptools==67.6.1 pyyaml==6.0.2 typing_extensions==4.8.0 packaging==25.0
+$PYTHON_BIN_PATH -m pip install --target=$PYTHON_LIB_PATH setuptools==67.6.1 pyyaml==6.0.2 typing_extensions==4.8.0 packaging==25.0 scikit-build-core==1.0.3 six==1.17.0
 
 case $PLATFORM in
     linux-x86)
@@ -165,7 +169,10 @@ case $PLATFORM in
     macosx-x86_64)
         export CC="clang"
         export CXX="clang++"
+        export LDFLAGS="-undefined dynamic_lookup"
         export USE_MKLDNN=OFF
+        sedinplace '/CHECK_FUNCTION_EXISTS(malloc_usable_size HAVE_MALLOC_USABLE_SIZE)/d' cmake/Dependencies.cmake aten/src/ATen/CMakeLists.txt
+        sedinplace '/CHECK_FUNCTION_EXISTS(posix_fallocate HAVE_POSIX_FALLOCATE)/d' cmake/Dependencies.cmake aten/src/ATen/CMakeLists.txt
         # export PATH=$(brew --prefix llvm@18)/bin:$PATH # Use brew LLVM instead of Xcode LLVM 14
         ;;
     windows-x86_64)
@@ -194,6 +201,9 @@ esac
 #sedinplace 's/,code=sm_.*)/,code=compute_60)/g' cmake/Modules_CUDA_fix/upstream/FindCUDA/select_compute_arch.cmake
 
 # work around issues with the build system
+sedinplace '/set(CMAKE_CXX_STANDARD/i\
+    set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+' CMakeLists.txt
 sedinplace '/Werror/d' CMakeLists.txt third_party/fbgemm/CMakeLists.txt third_party/fmt/CMakeLists.txt
 sedinplace '/setuptools.command.bdist_wheel/d' setup.py
 sedinplace 's/build_python=True/build_python=False/g' setup.py
@@ -201,13 +211,14 @@ sedinplace 's/    build_deps()/    build_deps(); sys.exit()/g' setup.py
 sedinplace 's/AND NOT DEFINED ENV{CUDAHOSTCXX}//g' cmake/public/cuda.cmake
 sedinplace 's/CMAKE_CUDA_FLAGS "/CMAKE_CUDA_FLAGS " --use-local-env /g' CMakeLists.txt
 sedinplace 's/-Xcompiler  \/Zc:__cplusplus/-Xcompiler  \/Zc:__cplusplus -Xcompiler \/Zc:preprocessor/g' CMakeLists.txt
+sedinplace 's/FMT_USE_CMAKE_MODULES TRUE/FMT_USE_CMAKE_MODULES FALSE/g' third_party/fmt/CMakeLists.txt third_party/kineto/libkineto/third_party/fmt/CMakeLists.txt
 
 #sedinplace '/pycore_opcode.h/d' torch/csrc/dynamo/cpython_defs.c functorch/csrc/dim/dim*
 sedinplace 's/using ExpandingArrayDouble/public: using ExpandingArrayDouble/g' ./torch/csrc/api/include/torch/nn/options/pooling.h
 
 # allow setting the build directory and passing CUDA options
-sedinplace "s/BUILD_DIR = .build./BUILD_DIR = os.environ['BUILD_DIR'] if 'BUILD_DIR' in os.environ else 'build'/g" tools/setup_helpers/env.py
-sedinplace 's/var.startswith(("BUILD_", "USE_", "CMAKE_"))/var.startswith(("BUILD_", "USE_", "CMAKE_", "CUDA_"))/g' tools/setup_helpers/cmake.py
+#sedinplace "s/BUILD_DIR = .build./BUILD_DIR = os.environ['BUILD_DIR'] if 'BUILD_DIR' in os.environ else 'build'/g" tools/setup_helpers/env.py
+#sedinplace 's/var.startswith(("BUILD_", "USE_", "CMAKE_"))/var.startswith(("BUILD_", "USE_", "CMAKE_", "CUDA_"))/g' tools/setup_helpers/cmake.py
 
 # allow resizing std::vector<at::indexing::TensorIndex> and std::vector<torch::optim::OptimizerParamGroup>
 sedinplace 's/TensorIndex(c10::nullopt_t.*)/TensorIndex(c10::nullopt_t none = None)/g' aten/src/ATen/TensorIndexing.h
@@ -255,15 +266,16 @@ sedinplace 's/include(${CMAKE_CURRENT_LIST_DIR}\/Modules\/FindOpenMP.cmake)/find
 #rm -f aten/src/ATen/native/cuda/SegmentReduce.cu
 
 #USE_FBGEMM=0 USE_KINETO=0 USE_GLOO=0 USE_MKLDNN=0 \
-BLAS=OpenBLAS "$PYTHON_BIN_PATH" setup.py build
+BLAS=OpenBLAS "$PYTHON_BIN_PATH" setup.py develop
 
-rm -Rf ../lib
-if [[ ! -e torch/include/gloo ]]; then
-    ln -sf ../../third_party/gloo/gloo torch/include
-fi
-ln -sf pytorch/torch/include ../include
-ln -sf pytorch/torch/lib ../lib
-ln -sf pytorch/torch/bin ../bin
+rm -Rf ../include ../lib ../bin
+#if [[ ! -e torch/include/gloo ]]; then
+#    ln -sf ../../third_party/gloo/gloo torch/include
+#fi
+ln -sf pytorch/build/include ../include
+ln -sf pytorch/build/lib ../lib
+ln -sf pytorch/build/bin ../bin
+rm -f ../lib/libomp.dylib
 
 case $PLATFORM in
     macosx-arm64)

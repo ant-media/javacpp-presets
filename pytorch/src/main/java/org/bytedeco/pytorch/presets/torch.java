@@ -59,7 +59,7 @@ import org.bytedeco.openblas.presets.openblas;
     value = {
         @Platform(
             value = {"linux", "macosx", "windows"},
-            compiler = "cpp17",
+            compiler = "cpp20",
 	        // __WINSOCKAPI_ fixes compilation error on windows due to
 	        // inclusion of both V1 and V2 of winsock API.
             define = {"SHARED_PTR_NAMESPACE std", "UNIQUE_PTR_NAMESPACE std", "USE_C10D_GLOO", "_WINSOCKAPI_", "WIN32_LEAN_AND_MEAN"},
@@ -94,15 +94,16 @@ import org.bytedeco.openblas.presets.openblas;
         ),
         @Platform(
             value = {"linux", "macosx", "windows"},
-            includepath = {"/usr/local/cuda/include", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.2/include/"},
+            includepath = {"/usr/local/cuda/include", "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.4/include/"},
             preloadpath = {
-                "/usr/local/cuda-13.2/lib64/",
-                "/usr/local/cuda-13.2/extras/CUPTI/lib64/",
+                "/usr/local/cuda-13.4/lib64/",
+                "/usr/local/cuda-13.4/extras/CUPTI/lib64/",
                 "/usr/local/cuda/lib64/",
                 "/usr/local/cuda/extras/CUPTI/lib64/",
                 "/usr/lib64/",
-                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.2/lib/x64/",
-                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.2/extras/CUPTI/lib64/",
+                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.4/lib/x64/",
+                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.4/extras/CUPTI/lib64/",
+                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.4/extras/CUPTI/lib/x64/",
                 "C:/Program Files/NVIDIA Corporation/NvToolsExt/bin/x64/",
             },
             extension = "-gpu"
@@ -186,8 +187,8 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
         }
         String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "cupti", "curand", "nvJitLink", "cusparse", "cusolver",
                          "cudnn", "cufile", "cufile_rdma", "nccl", "nvrtc", "nvrtc-builtins", "myelin", "nvinfer",
-                         "cudnn_graph", "cudnn_engines_precompiled", "cudnn_engines_runtime_compiled",
-                         "cudnn_heuristic", "cudnn_ops", "cudnn_adv", "cudnn_cnn"};
+                         "cudnn_ext", "cudnn_graph", "cudnn_engines_precompiled", "cudnn_engines_runtime_compiled",
+                         "cudnn_engines_tensor_ir", "cudnn_heuristic", "cudnn_ops", "cudnn_adv", "cudnn_cnn"};
         for (String lib : libs) {
             if (platform.startsWith("linux")) {
                 lib += lib.startsWith("cudnn") ? "@.9"
@@ -200,7 +201,7 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
                     : lib.equals("curand") ? "@.10"
                     : lib.equals("cusparse") ? "@.12"
                     : lib.equals("cusolver") ? "@.12"
-                    : lib.equals("nvrtc-builtins") ? "@.13.2"
+                    : lib.equals("nvrtc-builtins") ? "@.13.4"
                     : "@.13";
             } else if (platform.startsWith("windows")) {
                 lib += lib.startsWith("cudnn") ? "64_9"
@@ -214,9 +215,9 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
                     : lib.equals("cusparse") ? "64_12"
                     : lib.equals("cusolver") ? "64_12"
                     : lib.equals("nvrtc") ? "64_130_0"
-                    : lib.equals("nvrtc-builtins") ? "64_132"
+                    : lib.equals("nvrtc-builtins") ? "64_134"
                     : lib.equals("nvJitLink") ? "_130_0"
-                    : lib.equals("cupti") ? "64_2026.1.1"
+                    : lib.equals("cupti") ? "64_2026.3.1"
                     : "64_13";
             } else {
                 continue; // no CUDA
@@ -301,7 +302,7 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
                 "__ubsan_ignore_float_divide_by_zero__", "__ubsan_ignore_undefined__", "__ubsan_ignore_signed_int_overflow__", "__ubsan_ignore_function__",
                 "__ubsan_ignore_float_cast_overflow__", "C10_ALWAYS_INLINE_ATTRIBUTE", "C10_TYPENAME_CONSTEXPR",
                 "C10_CLANG_DIAGNOSTIC_IGNORE", "C10_CLANG_DIAGNOSTIC_PUSH", "C10_CLANG_DIAGNOSTIC_POP", "C10_ATTR_VISIBILITY_HIDDEN", "C10_ERASE",
-                "C10_UID", "C10_NODISCARD", "C10_UNUSED", "C10_USED", "C10_RESTRICT", "C10_NOINLINE", "C10_ALWAYS_INLINE", "C10_FALLTHROUGH",
+                "C10_UID", "C10_LIFETIMEBOUND", "C10_NODISCARD", "C10_UNUSED", "C10_USED", "C10_RESTRICT", "C10_NOINLINE", "C10_ALWAYS_INLINE", "C10_FALLTHROUGH",
                 "C10_HOST_DEVICE", "C10_DEVICE", "C10_HOST", "C10_LAUNCH_BOUNDS_0", "C10_HIP_HOST_DEVICE", "C10_WARP_SIZE", "C10_IOS", "C10_MOBILE",
                 "C10_HOST_CONSTEXPR", "CONSTEXPR_EXCEPT_WIN_CUDA", "C10_HOST_CONSTEXPR_EXCEPT_WIN_CUDA", "C10_ALWAYS_INLINE_UNLESS_MOBILE",
                 "alignas", "COMPLEX_INTEGER_OP_TEMPLATE_CONDITION", "C10_DEVICE_HOST_FUNCTION", "FORCE_INLINE_APPLE",
@@ -316,16 +317,19 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("defined(__CUDACC__) || defined(__HIPCC__)",
                 "defined(__HIPCC__) && defined(USE_ROCM)",
                 "defined(__CUDACC__) && !defined(USE_ROCM)",
+                "defined(__CUDACC__) && (!defined(USE_ROCM) || (TORCH_HIP_VERSION >= 702))",
                 "defined(USE_ROCM) && defined(__HIPCC__)",
                 "defined(TORCH_LIBRARY_THREAD_UNSAFE_LAZY_INIT) && defined(C10_MOBILE)",
                 "defined(SYCL_EXT_ONEAPI_BFLOAT16_MATH_FUNCTIONS)",
                 "defined(_MSC_VER) && _MSC_VER <= 1900",
+                "defined(C10_ARMTSC)",
                 "defined(NDEBUG)",
                 "defined(__ANDROID__)",
                 "defined(__APPLE__)",
                 "defined(__aarch64__) && !defined(__CUDACC__)",
                 "defined(__aarch64__) && !defined(C10_MOBILE) && !defined(__CUDACC__)",
                 "defined(__HIP_PLATFORM_HCC__)", "defined(__HIPCC__)",
+                "defined(C10_RISCVTSC)",
                 "defined(_MSC_VER)", "_WIN32",
                 "defined(USE_ROCM)", "USE_ROCM", "SYCL_LANGUAGE_VERSION",
                 "defined(CUDA_VERSION) && CUDA_VERSION >= 11000",
@@ -351,9 +355,13 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
         sharedMap(infoMap);
 
         infoMap
+            .put(new Info("AutogradState.h", "TensorImpl.h", "TensorOptions.h").linePatterns(".* uint8_t .* : 2 =", ".*;",
+                                                                                             ".* bool .* : 1 =.*").skip())
+            .put(new Info("TensorBase.h").linePatterns("namespace symint \\{", "\\} // namespace symint").skip())
             .put(new Info("ArrayRef.h").linePatterns("using IntList.*", ".*ArrayRef<int64_t>;").skip())
             .put(new Info("model_container_runner.h").linePatterns("using CreateAOTIModelRunnerFunc.*", "}*;").skip())
             .put(new Info("ordered_dict.h").linePatterns(".*class Item;.*").skip())
+            .put(new Info("stack.h").linePatterns("// variadic pop.*", "// copies.*").skip())
             .put(new Info("util.h").linePatterns(".*using approx_time_t = decltype.*").skip())
 
             .put(new Info().javaText("import org.bytedeco.pytorch.Allocator;"))
@@ -441,7 +449,7 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("std::optional<bool>").pointerTypes("BoolOptional").define())
             .put(new Info("std::optional<int8_t>", "std::optional<c10::DeviceIndex>").pointerTypes("ByteOptional").define())
             .put(new Info("std::optional<int>", "std::optional<int32_t>").pointerTypes("IntOptional").define())
-            .put(new Info("std::optional<int64_t>", "c10::remove_symint<std::optional<c10::SymInt> >::type").pointerTypes("LongOptional").define())
+            .put(new Info("std::optional<int64_t>", "std::optional<c10::CaptureId_t>", "std::optional<CaptureId_t>", "c10::remove_symint<std::optional<c10::SymInt> >::type").pointerTypes("LongOptional").define())
             .put(new Info("std::optional<float>").pointerTypes("FloatOptional").define())
             .put(new Info("std::optional<double>").pointerTypes("DoubleOptional").define())
             .put(new Info("std::optional<size_t>").pointerTypes("SizeTOptional").define())
@@ -488,8 +496,8 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("std::vector<std::optional<c10::SymInt> >").pointerTypes("SymIntOptionalVector").define())
             .put(new Info("std::optional<at::IValue>").pointerTypes("IValueOptional").define())
             .put(new Info("std::optional<at::DimVector>").pointerTypes("DimVectorOptional").define())
-            .put(new Info("std::optional<at::Dimname>").pointerTypes("DimnameOptional").define())
-            .put(new Info("std::optional<at::DimnameList>").pointerTypes("DimnameListOptional").define())
+//            .put(new Info("std::optional<at::Dimname>").pointerTypes("DimnameOptional").define())
+//            .put(new Info("std::optional<at::DimnameList>").pointerTypes("DimnameListOptional").define())
             .put(new Info("std::optional<at::Generator>").pointerTypes("GeneratorOptional").define())
             .put(new Info("std::optional<at::Tensor>", "std::optional<torch::Tensor>", "std::optional<at::Tensor>", "std::optional<torch::TensorBase>", "std::optional<torch::autograd::Variable>").pointerTypes("TensorOptional").define())
             .put(new Info("const std::optional<torch::autograd::InputMetadata>",
@@ -568,6 +576,7 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
         //// std::variant
         infoMap
 //            .put(new Info("std::variant<int,std::vector<int> >").pointerTypes("IntVectorVariant").define())
+            .put(new Info("std::variant<std::unordered_set<std::string>,std::vector<std::string> >").pointerTypes("StringHandles").define())
             .put(new Info("std::variant<torch::enumtype::kLinear,torch::enumtype::kConv1D,torch::enumtype::kConv2D,torch::enumtype::kConv3D,"
                           + "torch::enumtype::kConvTranspose1D,torch::enumtype::kConvTranspose2D,torch::enumtype::kConvTranspose3D,"
                           + "torch::enumtype::kSigmoid,torch::enumtype::kTanh,torch::enumtype::kReLU,torch::enumtype::kLeakyReLU>",
@@ -691,12 +700,14 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("std::vector<const char*>").pointerTypes("BytePointerVector").define())
 //            .put(new Info("std::vector<int>").pointerTypes("IntVector").define())
             .put(new Info("std::vector<int64_t>", "std::tuple<std::vector<int64_t>,std::vector<int64_t> >").cast().pointerTypes("LongVector").define())
+            .put(new Info("c10::SmallVector<int64_t,5>").cast().pointerTypes("SmallLongVector").define())
             .put(new Info("std::vector<double>").cast().pointerTypes("DoubleVector").define())
             .put(new Info("std::vector<size_t>").cast().pointerTypes("SizeTVector").define())
             .put(new Info("std::vector<std::string>").pointerTypes("StringVector").define())
             .put(new Info("std::vector<c10::string_view>", "std::vector<std::string_view>").pointerTypes("StringViewVector").define())
             .put(new Info("std::vector<std::pair<int,int> >").pointerTypes("IntPairVector").define())
             .put(new Info("std::vector<std::pair<std::string,int64_t> >").pointerTypes("StringLongVector").define())
+            .put(new Info("const std::vector<c10::Device>", "std::vector<c10::Device>").pointerTypes("DeviceVector").define())
             .put(new Info("std::vector<c10::IValue>", "torch::jit::Stack").pointerTypes("IValueVector").define())
             .put(new Info("std::vector<c10::IValue>::const_iterator", "torch::jit::Stack::const_iterator").pointerTypes("IValueVector.Iterator"))
             .put(new Info("std::vector<c10::QEngine>", "std::vector<at::QEngine>").pointerTypes("QEngineVector").define())
@@ -707,7 +718,7 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("std::vector<std::shared_ptr<c10::ClassType> >", "std::vector<c10::ClassTypePtr>").pointerTypes("SharedClassTypeVector").define())
             .put(new Info("std::vector<c10::Type::SingletonOrSharedTypePtr<c10::Type> >", "std::vector<c10::TypePtr>",
                 "std::vector<c10::Type::TypePtr>", "c10::AliasTypeSet").pointerTypes("TypeVector").define())
-            .put(new Info("const std::vector<at::Dimname>", "std::vector<at::Dimname>").pointerTypes("DimnameVector").define())
+//            .put(new Info("const std::vector<at::Dimname>", "std::vector<at::Dimname>").pointerTypes("DimnameVector").define())
             .put(new Info("std::vector<c10::Stride>").pointerTypes("StrideVector").define())
             .put(new Info("std::vector<c10::ShapeSymbol>").pointerTypes("ShapeSymbolVector").define())
             .put(new Info("std::vector<c10::TensorImpl*>").pointerTypes("TensorImplVector").define())
@@ -765,16 +776,18 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             new ArrayInfo("ArgumentDef").elementTypes("c10::detail::infer_schema::ArgumentDef"),
             new ArrayInfo("BFloat16") /*.itPointerType("ShortPointer") */.elementTypes("c10::impl::ScalarTypeToCPPTypeT<c10::ScalarType::BFloat16>",
                                                                                        "decltype(::c10::impl::ScalarTypeToCPPType<::c10::ScalarType::BFloat16>::t)"),
+            new ArrayInfo("BFloat16Complex") /*.itPointerType("FloatPointer") */.elementTypes("c10::complex<c10::BFloat16>"),
             new ArrayInfo("Block").elementTypes("torch::jit::Block*").itPointerType("PointerPointer<Block>"),
             new ArrayInfo("Bool").itPointerType("BoolPointer").elementTypes("bool", "c10::impl::ScalarTypeToCPPTypeT<c10::ScalarType::Bool>",
                                                                                     "decltype(::c10::impl::ScalarTypeToCPPType<::c10::ScalarType::Bool>::t)").elementValueType("boolean"),
             new ArrayInfo("Byte").itPointerType("BytePointer").elementTypes("jbyte", "int8_t", "uint8_t").elementValueType("byte"),
-            new ArrayInfo("Dimname").otherCppNames("at::DimnameList").elementTypes("at::Dimname").otherPointerTypes("DimnameVector"),
-            new ArrayInfo("Double").itPointerType("DoublePointer").elementTypes("double"),
+//            new ArrayInfo("Dimname").otherCppNames("at::DimnameList").elementTypes("at::Dimname").otherPointerTypes("DimnameVector"),
+            new ArrayInfo("Double").itPointerType("DoublePointer").elementTypes("double").elementValueType("double"),
             new ArrayInfo("DoubleComplex") /*.itPointertype("DoublePointer") */.elementTypes("c10::complex<double>"),
             new ArrayInfo("EnumNameValue").elementTypes("c10::EnumNameValue"),
             new ArrayInfo("Float").itPointerType("FloatPointer").elementTypes("float").elementValueType("float"),
             new ArrayInfo("FloatComplex") /*.itPointerType("FloatPointer") */.elementTypes("c10::complex<float>"),
+
             new ArrayInfo("Future").elementTypes("c10::intrusive_ptr<c10::ivalue::Future>"),
             new ArrayInfo("Half") /*.itPointerType("ShortPointer") */.elementTypes("c10::impl::ScalarTypeToCPPTypeT<c10::ScalarType::Half>",
                                                                                    "decltype(::c10::impl::ScalarTypeToCPPType<::c10::ScalarType::Half>::t)"),
@@ -957,7 +970,6 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("std::unordered_set<c10::DeviceType>").pointerTypes("DeviceTypeSet").define())
             .put(new Info("std::unordered_set<int16_t>", "std::unordered_set<torch::distributed::rpc::worker_id_t>").pointerTypes("ShortSet").define())
             .put(new Info("std::set<torch::profiler::impl::ActivityType>").pointerTypes("ActivityTypeSet").define())
-            .put(new Info("std::unordered_map<size_t,std::string>").pointerTypes("SizeTStringMap").define())
             // .put(new Info("std::unordered_map<int64_t,std::shared_ptr<torch::distributed::autograd::RecvRpcBackward> >").pointerTypes("LongRecvRpcBackwardMap").define()) // Not on windows
             // .put(new Info("std::unordered_map<int64_t,std::shared_ptr<torch::distributed::autograd::SendRpcBackward> >").pointerTypes("LongSendRpcBackwardMap").define())
         ;
@@ -968,6 +980,7 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("std::unordered_map<c10::IValue,c10::IValue,c10::IValue::HashAliasedIValue,c10::IValue::CompAliasedIValues>").pointerTypes("HashAliasedIValueMap").define())
             .put(new Info("std::unordered_map<std::string,bool>").pointerTypes("StringBoolMap").define())
             .put(new Info("std::unordered_map<std::string,size_t>").pointerTypes("StringSizeTMap").define())
+            .put(new Info("std::unordered_map<std::string,uint64_t>").pointerTypes("StringULongMap").define())
             .put(new Info("std::unordered_map<std::string,std::string>").pointerTypes("ExtraFilesMap").define())
             .put(new Info("std::unordered_map<std::string,at::Tensor>").pointerTypes("StringTensorUMap").define())
             .put(new Info("std::unordered_map<std::string,c10::TypePtr>").pointerTypes("TypeEnv").define())
@@ -978,9 +991,10 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("std::unordered_map<torch::jit::ArgumentSpec,torch::jit::ExecutionPlan>").pointerTypes("ArgumentSpecExecutionPlanMap").define())
             .put(new Info("std::unordered_map<torch::jit::TreeRef,std::string>", "std::unordered_map<c10::intrusive_ptr<torch::jit::Tree>,std::string>").pointerTypes("TreeStringMap").define())
             .put(new Info("std::unordered_map<std::string,int32_t>").pointerTypes("StringIntMap").define())
+            .put(new Info("std::unordered_map<size_t,std::string>").pointerTypes("SizeTStringMap").define())
             .put(new Info(
                 "const std::unordered_map<torch::autograd::Node*,torch::dynamo::autograd::NodeCall>",
-                "std::unordered_map<torch::autograd::Node::Node*,torch::dynamo::autograd::NodeCall>" // Fix erroneous ns qualification due to a previous `using Node::Node`
+                "std::unordered_map<torch::autograd::Node*,torch::dynamo::autograd::NodeCall>" // Fix erroneous ns qualification due to a previous `using Node::Node`
             ).pointerTypes("NodeNodeCallMap").define())
             .put(new Info("std::unordered_map<c10::IValue,c10::IValue,c10::IValue::HashIdentityIValue,c10::IValue::CompIdentityIValues>").pointerTypes("HashIdentityIValueMap").define())
         ;
@@ -1137,6 +1151,7 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             .put(new Info("std::pair<size_t,size_t>").pointerTypes("SizeTPair").define())
             .put(new Info("std::pair<unsigned long long,unsigned long long>", "std::pair<c10::CaptureId_t,c10::CaptureId_t>",
                           "c10::MempoolId_t").pointerTypes("LongPair").define())
+            .put(new Info("std::pair<std::string_view,std::string_view>").pointerTypes("StringViewPair").define())
         ;
 
 
@@ -1159,11 +1174,13 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             new PointerInfo("c10::StorageImpl", "c10::StorageImpl,NullType"),
             new PointerInfo("c10::SymNodeImpl").javaBaseName("SymNode"),
             new PointerInfo("c10::BackendMeta"), //.javaBaseName("BackendMetaRef"), // Warning: BackendMetaPtr is sth different
+            new PointerInfo("torch::autograd::Node"),
             new PointerInfo("torch::jit::Tree").otherCppNames("torch::jit::TreeRef"),
 
             new PointerInfo("c10d::Store"),
             new PointerInfo("c10d::ProcessGroup::Options").javaBaseName("ProcessGroup.Options"),
             new PointerInfo("c10d::Work"),
+            new PointerInfo("c10d::Window"),
             new PointerInfo("c10d::Backend"),
             new PointerInfo("c10d::Backend::Options").javaBaseName("Backend.Options"),
             new PointerInfo("c10d::_SupplementBase"),
@@ -1258,9 +1275,11 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
         infoMap
             .put(new Info("c10::complex<double>").pointerTypes("DoubleComplex"))
             .put(new Info("c10::complex<float>").pointerTypes("FloatComplex"))
+            .put(new Info("c10::complex<c10::BFloat16>").pointerTypes("BFloat16Complex"))
             .put(new Info("c10::complex<c10::Half>").pointerTypes("HalfComplex"))
             .put(new Info("c10::complex<double>::real", "c10::complex<double>::imag",
                 "c10::complex<float>::real", "c10::complex<float>::imag",
+                "c10::complex<c10::BFloat16>::real", "c10::complex<c10::BFloat16>::imag",
                 "c10::complex<c10::Half>::real", "c10::complex<c10::Half>::imag").annotations("@org.bytedeco.javacpp.annotation.Function"))
             .put(new Info( // Not implemented in c10::complex<c10::Half> template specialization:
                 "c10::complex<c10::Half>::operator =(c10::Half)",
@@ -1286,6 +1305,32 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
                     "public native @ByRef @Name(\"operator -=\") HalfComplex subtractPut(@Const @ByRef HalfComplex other);\n" +
                     "\n" +
                     "public native @ByRef @Name(\"operator *=\") HalfComplex multiplyPut(@Const @ByRef HalfComplex other);"
+                )
+            )
+            .put(new Info( // Not implemented in c10::complex<c10::BFloat16> template specialization:
+                "c10::complex<c10::BFloat16>::operator =(c10::BFloat16)",
+                "c10::complex<c10::BFloat16>::real(c10::BFloat16)",
+                "c10::complex<c10::BFloat16>::imag(c10::BFloat16)",
+                "c10::complex<c10::BFloat16>::operator const bool()",
+                "c10::complex<c10::BFloat16>::operator +=(c10::BFloat16)",
+                "c10::complex<c10::BFloat16>::operator -=(c10::BFloat16)",
+                "c10::complex<c10::BFloat16>::operator *=(c10::BFloat16)",
+                "c10::complex<c10::BFloat16>::operator /=(c10::BFloat16)"
+            ).skip())
+            .put(new Info("c10::complex<c10::BFloat16>::complex(const c10::BFloat16&, const c10::BFloat16&)").javaText( // Second argument not optional + add specific functions
+                    "public BFloat16Complex(BFloat16 re, BFloat16 im) { super((Pointer)null); allocate(re, im); }\n" +
+                    "private native void allocate(@Const @ByRef BFloat16 re, @Const @ByRef(nullValue = \"c10::BFloat16()\") BFloat16 im);\n" +
+                    "public BFloat16Complex(@Const @ByRef FloatComplex value) { super((Pointer)null); allocate(value); }\n" +
+                    "private native void allocate(@Const @ByRef FloatComplex value);\n" +
+                    "\n" +
+                    "// Conversion operator\n" +
+                    "public native @ByVal @Name(\"operator c10::complex<float>\") FloatComplex asFloatComplex();\n" +
+                    "\n" +
+                    "public native @ByRef @Name(\"operator +=\") BFloat16Complex addPut(@Const @ByRef BFloat16Complex other);\n" +
+                    "\n" +
+                    "public native @ByRef @Name(\"operator -=\") BFloat16Complex subtractPut(@Const @ByRef BFloat16Complex other);\n" +
+                    "\n" +
+                    "public native @ByRef @Name(\"operator *=\") BFloat16Complex multiplyPut(@Const @ByRef BFloat16Complex other);"
                 )
             )
         ;
@@ -2332,8 +2377,9 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             {"at::Half", "Half"},
             {"float", "float"},
             {"double", "double"},
-            {"c10::complex<float>", "ComplexFloat"},
-            {"c10::complex<double>", "ComplexDouble"},
+            {"c10::complex<float>", "FloatComplex"},
+            {"c10::complex<double>", "DoubleComplex"},
+            {"c10::complex<c10::BFloat16>", "BFloat16Complex"},
             {"bool", "boolean"},
             {"at::BFloat16", "BFloat16"},
             {"at::Float8_e4m3fn", "Float8_e4m3fn"},
@@ -2348,7 +2394,7 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
 
         //// c10::string_view
         infoMap.put(new Info("c10::basic_string_view<char>", "c10::string_view").annotations("@StringView").valueTypes("BytePointer", "String"));
-        infoMap.put(new Info("std::string_view").annotations("@StringView").valueTypes("@Cast(\"const char*\") BytePointer", "String"));
+        infoMap.put(new Info("std::string_view").annotations("@StringView").valueTypes("@Cast(\"const char*\") BytePointer", "String").pointerTypes("@Cast({\"const char*\", \"c10::string_view*\"}) BytePointer"));
 
         // Registries.
         // Skipped them for now. Much burden with variadic args and creator function pointers.
@@ -2666,11 +2712,15 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
             "c10::operator <<(std::ostream&, c10::SourceLocation&)",
             "c10d::checkForNan", // Not exported
             "c10d::Logger::operator <<(std::ostream&, const c10d::Logger&)", // No definition
+            "c10d::ProcessGroup::registerPreHook",
+            "c10d::ProcessGroup::registerPostHook",
             "c10d::ProcessGroupGloo::createProcessGroupGloo", // No definition
             "c10::TensorImpl::set_allow_tensor_metadata_change",
             "caffe2::serialize::detail::getOffset",
             "caffe2::serialize::detail::getPadding",
+            "std::ranges::enable_borrowed_range",
             "torch::autograd::add_node_to_current_graph_task_exec_info",
+            "torch::autograd::maybe_override_stale_capture_stream",
             "torch::autograd::set_device(int)",
             "torch::detail::constructSchemaOrName",
             "torch::distributed::rpc::Message::isShutdown", // No definition
@@ -2959,6 +3009,8 @@ public class torch implements LoadEnabled, InfoMapper, BuildEnabled {
                                  cppHeaderOnlyName + "::cbegin", cppHeaderOnlyName + "::cend",
                                  cppHeaderOnlyName + "(const " + elementTypes[0] + "&)",
                                  cppHeaderOnlyName + "(" + elementTypes[0] + "&)",
+                                 cppHeaderOnlyName + "::operator ==",
+                                 cppHeaderOnlyName + "::operator !=",
                                  cppHeaderOnlyName + "::allMatch",
                                  cppHeaderOnlyName + "::equals").skip());
 

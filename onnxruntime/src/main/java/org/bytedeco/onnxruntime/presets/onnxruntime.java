@@ -31,20 +31,22 @@ import org.bytedeco.javacpp.tools.Info;
 import org.bytedeco.javacpp.tools.InfoMap;
 import org.bytedeco.javacpp.tools.InfoMapper;
 
-import org.bytedeco.dnnl.presets.*;
-
 /**
  *
  * @author Samuel Audet
  */
 @Properties(
-    inherit = dnnl.class,
     value = {
         @Platform(
             value = {"linux", "macosx", "windows"},
             compiler = "cpp17",
-            define = {"GENERIC_EXCEPTION_CLASS Ort::Exception", "GENERIC_EXCEPTION_TOSTRING what()"},
+            define = {"GENERIC_EXCEPTION_CLASS Ort::Exception", "GENERIC_EXCEPTION_TOSTRING what()",
+                      "ENABLE_TRAINING", "ENABLE_TRAINING_APIS"},
             include = {
+                "onnxruntime/core/session/onnxruntime_error_code.h",
+                "onnxruntime/core/session/onnxruntime_env_config_keys.h",
+                "onnxruntime/core/session/onnxruntime_session_options_config_keys.h",
+                "onnxruntime/core/session/onnxruntime_run_options_config_keys.h",
                 "onnxruntime/core/session/onnxruntime_c_api.h",
                 "onnxruntime/core/session/onnxruntime_ep_c_api.h",
                 "onnxruntime/core/session/onnxruntime_cxx_api.h",
@@ -64,16 +66,20 @@ import org.bytedeco.dnnl.presets.*;
 //                "onnxruntime/core/providers/coreml/coreml_provider_factory.h",
 //                "onnxruntime/core/providers/rocm/rocm_provider_factory.h",
 //                "onnxruntime/core/providers/dml/dml_provider_factory.h",
-//                "onnxruntime_training_c_api.h",
+                "onnxruntime_training_c_api.h",
             },
             exclude = {"CL/opencl.h", "CL/cl_version.h", "CL/cl_platform.h", "CL/cl.h"/*, "CL/cl_gl.h", "CL/cl_gl_ext.h", "CL/cl_ext.h"*/,
                        "onnxruntime/core/session/onnxruntime_ep_c_api.h"},
             link = {"onnxruntime_providers_shared", "onnxruntime@.1", "onnxruntime_providers_dnnl"}
         ),
         @Platform(
-            value = {"linux", "macosx", "windows"},
+            value = {"linux-x86_64", "macosx-arm64", "windows-x86_64"},
+            link = {"onnxruntime_providers_shared", "onnxruntime@.1", "onnxruntime_providers_dnnl", "onnxruntime_providers_openvino"}
+        ),
+        @Platform(
+            value = {"linux-x86_64", "windows-x86_64"},
             extension = "-gpu",
-            link = {"onnxruntime_providers_shared", "onnxruntime@.1", "onnxruntime_providers_dnnl", "onnxruntime_providers_cuda"}
+            link = {"onnxruntime_providers_shared", "onnxruntime@.1", "onnxruntime_providers_dnnl", "onnxruntime_providers_openvino", "onnxruntime_providers_cuda"}
         ),
     },
     target = "org.bytedeco.onnxruntime",
@@ -88,17 +94,95 @@ public class onnxruntime implements LoadEnabled, InfoMapper {
         List<String> preloads = properties.get("platform.preload");
         List<String> resources = properties.get("platform.preloadresource");
 
-        // Only apply this at load time since we don't want to copy the CUDA libraries here
-        if (!Loader.isLoadLibraries() || extension == null || !extension.equals("-gpu")) {
+        // Only apply this at load time since we don't want to copy the optional libraries here
+        if (!Loader.isLoadLibraries()) {
             return;
         }
         int i = 0;
+
+        // dnnl
+        String[] dnnlLibs = {"gomp@.1", "iomp5", "omp", "tbb@.2", "dnnl@.3"};
+        for (String lib : dnnlLibs) {
+            if (!preloads.contains(lib)) {
+                preloads.add(i++, lib);
+            }
+        }
+        resources.add("/org/bytedeco/dnnl/");
+
+        // openvino
+        String[] openvinoLibs = {};
+        if (platform.equals("linux-x86_64")) {
+            openvinoLibs = new String[] {
+                "tbb:runtime/3rdparty/tbb/lib/libtbb.so.12",
+                "openvino:runtime/lib/intel64/libopenvino.so.2621",
+                "openvino_c:runtime/lib/intel64/libopenvino_c.so.2621",
+                "openvino_auto_batch_plugin:runtime/lib/intel64/libopenvino_auto_batch_plugin.so",
+                "openvino_auto_plugin:runtime/lib/intel64/libopenvino_auto_plugin.so",
+                "openvino_hetero_plugin:runtime/lib/intel64/libopenvino_hetero_plugin.so",
+                "openvino_intel_cpu_plugin:runtime/lib/intel64/libopenvino_intel_cpu_plugin.so",
+                "openvino_intel_gpu_plugin:runtime/lib/intel64/libopenvino_intel_gpu_plugin.so",
+                "openvino_intel_npu_plugin:runtime/lib/intel64/libopenvino_intel_npu_plugin.so",
+                "openvino_ir_frontend:runtime/lib/intel64/libopenvino_ir_frontend.so.2621",
+                "openvino_onnx_frontend:runtime/lib/intel64/libopenvino_onnx_frontend.so.2621",
+                "openvino_paddle_frontend:runtime/lib/intel64/libopenvino_paddle_frontend.so.2621",
+                "openvino_pytorch_frontend:runtime/lib/intel64/libopenvino_pytorch_frontend.so.2621",
+                "openvino_tensorflow_frontend:runtime/lib/intel64/libopenvino_tensorflow_frontend.so.2621",
+                "openvino_tensorflow_lite_frontend:runtime/lib/intel64/libopenvino_tensorflow_lite_frontend.so.2621"
+            };
+        } else if (platform.equals("macosx-arm64")) {
+            openvinoLibs = new String[] {
+                "tbb:runtime/3rdparty/tbb/lib/libtbb.12.dylib",
+                "openvino:runtime/lib/arm64/Release/libopenvino.2621.dylib",
+                "openvino_c:runtime/lib/arm64/Release/libopenvino_c.2621.dylib",
+                "openvino_auto_batch_plugin:runtime/lib/arm64/Release/libopenvino_auto_batch_plugin.so",
+                "openvino_auto_plugin:runtime/lib/arm64/Release/libopenvino_auto_plugin.so",
+                "openvino_hetero_plugin:runtime/lib/arm64/Release/libopenvino_hetero_plugin.so",
+                "openvino_arm_cpu_plugin:runtime/lib/arm64/Release/libopenvino_arm_cpu_plugin.so",
+                "openvino_ir_frontend:runtime/lib/arm64/Release/libopenvino_ir_frontend.2621.dylib",
+                "openvino_onnx_frontend:runtime/lib/arm64/Release/libopenvino_onnx_frontend.2621.dylib",
+                "openvino_paddle_frontend:runtime/lib/arm64/Release/libopenvino_paddle_frontend.2621.dylib",
+                "openvino_pytorch_frontend:runtime/lib/arm64/Release/libopenvino_pytorch_frontend.2621.dylib",
+                "openvino_tensorflow_frontend:runtime/lib/arm64/Release/libopenvino_tensorflow_frontend.2621.dylib",
+                "openvino_tensorflow_lite_frontend:runtime/lib/arm64/Release/libopenvino_tensorflow_lite_frontend.2621.dylib"
+            };
+        } else if (platform.equals("windows-x86_64")) {
+            openvinoLibs = new String[] {
+                "tbb12:runtime/3rdparty/tbb/bin/tbb12.dll",
+                "openvino:runtime/bin/intel64/Release/openvino.dll",
+                "openvino_c:runtime/bin/intel64/Release/openvino_c.dll",
+                "openvino_auto_batch_plugin:runtime/bin/intel64/Release/openvino_auto_batch_plugin.dll",
+                "openvino_auto_plugin:runtime/bin/intel64/Release/openvino_auto_plugin.dll",
+                "openvino_hetero_plugin:runtime/bin/intel64/Release/openvino_hetero_plugin.dll",
+                "openvino_intel_cpu_plugin:runtime/bin/intel64/Release/openvino_intel_cpu_plugin.dll",
+                "openvino_intel_gpu_plugin:runtime/bin/intel64/Release/openvino_intel_gpu_plugin.dll",
+                "openvino_intel_npu_plugin:runtime/bin/intel64/Release/openvino_intel_npu_plugin.dll",
+                "openvino_ir_frontend:runtime/bin/intel64/Release/openvino_ir_frontend.dll",
+                "openvino_onnx_frontend:runtime/bin/intel64/Release/openvino_onnx_frontend.dll",
+                "openvino_paddle_frontend:runtime/bin/intel64/Release/openvino_paddle_frontend.dll",
+                "openvino_pytorch_frontend:runtime/bin/intel64/Release/openvino_pytorch_frontend.dll",
+                "openvino_tensorflow_frontend:runtime/bin/intel64/Release/openvino_tensorflow_frontend.dll",
+                "openvino_tensorflow_lite_frontend:runtime/bin/intel64/Release/openvino_tensorflow_lite_frontend.dll"
+            };
+        }
+        for (String lib : openvinoLibs) {
+            if (!preloads.contains(lib)) {
+                preloads.add(i++, lib);
+            }
+        }
+        if (openvinoLibs.length > 0) {
+            resources.add("/org/bytedeco/openvino/");
+        }
+
+        // the following only applies when CUDA is enabled
+        if (extension == null || !extension.equals("-gpu")) {
+            return;
+        }
         if (platform.startsWith("windows")) {
             preloads.add(i++, "zlibwapi");
         }
-        String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "curand", "cudnn",
+        String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "curand", "cudnn", "cudnn_ext",
                          "cudnn_graph", "cudnn_engines_precompiled", "cudnn_engines_runtime_compiled",
-                         "cudnn_heuristic", "cudnn_ops", "cudnn_adv", "cudnn_cnn"};
+                         "cudnn_engines_tensor_ir", "cudnn_heuristic", "cudnn_ops", "cudnn_adv", "cudnn_cnn"};
         for (String lib : libs) {
             if (platform.startsWith("linux")) {
                 lib += lib.startsWith("cudnn") ? "@.9" : lib.equals("cufft") ? "@.12" : lib.equals("curand") ? "@.10" : lib.equals("cudart") ? "@.13" : "@.13";
@@ -123,7 +207,7 @@ public class onnxruntime implements LoadEnabled, InfoMapper {
                              "onnxruntime_float16::Float16Impl<Float16_t>", "Ort::ConstHardwareDevice").cppText("").cppTypes().cast().pointerTypes("Pointer"))
                .put(new Info("ORT_EXPORT", "ORT_API_CALL", "ORT_FILE", "NO_EXCEPTION", "ORT_ALL_ARGS_NONNULL", "OrtCustomOpApi").cppTypes().annotations())
                .put(new Info("ORT_API_MANUAL_INIT", "__cpp_if_constexpr").define(false))
-               .put(new Info("USE_CUDA", "USE_DNNL").define(true))
+               .put(new Info("USE_CUDA", "USE_DNNL", "USE_OPENVINO").define(true))
                .put(new Info("Ort::stub_api", "Ort::Global<T>::api_", "std::nullptr_t", "Ort::Env::s_api", "std::vector<Ort::AllocatedStringPtr>", "not_defined_in_this_build").skip())
                .put(new Info("Ort::AllocatedStringPtr").valueTypes("@UniquePtr(\"char, Ort::detail::AllocatedFree\") @Cast(\"char*\") BytePointer"))
 //               .put(new Info("std::string").annotations("@Cast({\"char*\", \"std::string&&\"}) @StdString").valueTypes("BytePointer", "String").pointerTypes("BytePointer"))
@@ -162,6 +246,10 @@ public class onnxruntime implements LoadEnabled, InfoMapper {
                .put(new Info("Ort::detail::ValueImpl<OrtValue>::GetTensorMutableData<uint64_t>").javaNames("GetTensorMutableDataULong"))
                .put(new Info("Ort::detail::ValueImpl<OrtValue>::GetTensorMutableData<bool>").javaNames("GetTensorMutableDataBool"))
                .put(new Info("Ort::detail::Unowned<OrtAllocator>").pointerTypes("UnownedAllocator").purify())
+               .put(new Info("Ort::detail::Base<OrtDeviceEpIncompatibilityDetails>").pointerTypes("BaseDeviceEpIncompatibilityDetails"))
+               .put(new Info("DeviceEpIncompatibilityDetailsImpl<OrtDeviceEpIncompatibilityDetails>",
+                             "Ort::detail::DeviceEpIncompatibilityDetailsImpl<OrtDeviceEpIncompatibilityDetails>").pointerTypes("DeviceEpIncompatibilityDetailsImpl"))
+               .put(new Info("DeviceEpIncompatibilityDetails", "Ort::DeviceEpIncompatibilityDetails").pointerTypes("DeviceEpIncompatibilityDetails"))
                .put(new Info("Ort::detail::Unowned<const OrtEpAssignedNode>").pointerTypes("ConstEpAssignedNode").purify())
                .put(new Info("Ort::detail::Unowned<const OrtEpAssignedSubgraph>").pointerTypes("ConstEpAssignedSubgraph").purify())
                .put(new Info("Ort::detail::Unowned<const Ort::MemoryInfo>").pointerTypes("UnownedMemoryInfo").purify())

@@ -6,12 +6,12 @@
   <parent>
     <groupId>org.bytedeco</groupId>
     <artifactId>javacpp-presets</artifactId>
-    <version>1.5.11</version>
+    <version>1.5.15-SNAPSHOT</version>
   </parent>
 
   <groupId>org.bytedeco</groupId>
   <artifactId>hdf5</artifactId>
-  <version>1.14.3-${project.parent.version}</version>
+  <version>2.2.0-${project.parent.version}</version>
   <name>JavaCPP Presets for HDF5</name>
 
   <dependencies>
@@ -24,6 +24,12 @@
       <artifactId>slf4j-simple</artifactId>
       <version>1.7.36</version>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -43,6 +49,17 @@
         <artifactId>javacpp</artifactId>
         <configuration>
           <encoding>ISO-8859-1</encoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- javacpp:build (process-classes, before test) stages the platform's compiled
+               native libraries under target/native/, not target/classes/, so Loader's
+               classpath scan needs it added explicitly to find/load them during tests. -->
+          <additionalClasspathElements>
+            <additionalClasspathElement>${project.build.directory}/native</additionalClasspathElement>
+          </additionalClasspathElements>
         </configuration>
       </plugin>
       <plugin>
