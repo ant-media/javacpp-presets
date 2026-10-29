@@ -17,6 +17,7 @@
   <modules>
     <module>../opencv/platform</module>
     <module>../ffmpeg/platform</module>
+    <module>../srt/platform</module>
 <!--    <module>../flycapture/platform</module>-->
 <!--    <module>../spinnaker/platform</module>-->
 <!--    <module>../libdc1394/platform</module>-->
@@ -78,6 +79,11 @@
   </modules>
 
   <dependencies>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>srt-platform</artifactId>
+      <version>1.5.4-1.5.13</version>
+    </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>javacpp-platform</artifactId>

@@ -580,6 +580,7 @@
       <modules>
         <module>opencv</module>
         <module>ffmpeg</module>
+        <module>srt</module>
         <module>flycapture</module>
         <module>spinnaker</module>
         <module>libdc1394</module>
@@ -1189,6 +1190,7 @@
       <modules>
         <module>opencv</module>
         <module>ffmpeg</module>
+        <module>srt</module>
         <module>flycapture</module>
         <module>libdc1394</module>
         <module>libfreenect</module>
@@ -1389,6 +1391,7 @@
       <modules>
         <module>opencv</module>
         <module>ffmpeg</module>
+        <module>srt</module>
         <module>flycapture</module>
         <module>spinnaker</module>
         <module>libdc1394</module>
@@ -1539,6 +1542,7 @@
       <modules>
         <module>opencv</module>
         <module>ffmpeg</module>
+        <module>srt</module>
         <module>libdc1394</module>
         <module>libfreenect</module>
         <module>libfreenect2</module>

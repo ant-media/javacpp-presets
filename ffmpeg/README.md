@@ -231,3 +231,43 @@ public class ReadFewFrame {
     }
 }
 ```
+
+## Ant Media CUDA/NPP builds and fast rebuilds
+
+These options port the GPU scaling and rebuild workflow from
+`mekya/javacpp-presets` (`ams-1.5.8` and `ams-1.5.11`) to this tree's current
+FFmpeg recipe. Standard builds keep the upstream dependency configuration.
+
+Enable CUDA/NPP scaling on Linux x86_64 or arm64 with:
+
+```bash
+FFMPEG_NPP=1 CUDA_PATH=/usr/local/cuda bash cppbuild.sh install ffmpeg -platform linux-x86_64
+```
+
+This enables `--enable-cuda-nvcc --enable-libnpp --enable-nonfree`. The resulting
+FFmpeg build is marked nonfree by FFmpeg's configure script. Use a CUDA 13 SDK
+matching this tree's NPP preloads; set `CUDA_LIBDIR` if its libraries are outside
+`$CUDA_PATH/lib64` (for example `$CUDA_PATH/targets/aarch64-linux/lib`). For
+cross compilation, use target architecture CUDA headers/libraries and the
+matching CUDA cross toolchain. Runtime library search paths can also be set
+with `-Dorg.bytedeco.javacpp.platform.preloadpath=/path/to/cuda/lib`.
+
+After a successful full build, rebuild only FFmpeg using its existing source
+and dependency installation:
+
+```bash
+bash ffmpeg/cppbuild_rebuild.sh -platform linux-x86_64
+# Historical entry point that also enables CUDA/NPP:
+bash ffmpeg/cppbuild_rebuild_fast_only_ffmpeg.sh -platform linux-x86_64
+```
+
+The helpers work from any directory and support `linux-x86_64` and
+`linux-arm64`, with the same `-extension` option as the common build driver.
+They reuse the current configure recipe without downloading/extracting archives,
+reapplying patches, or rebuilding dependencies. Rebuild using the same NPP and
+extension settings as the full build. After dependency, patch, or FFmpeg version
+changes, run a full build again first. Syntax/control-flow checks:
+
+```bash
+python3 ffmpeg/tests/test_build_modes.py
+```
