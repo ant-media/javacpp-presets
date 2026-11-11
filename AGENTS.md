@@ -32,8 +32,10 @@ build customizations. Some tailoring was originally developed in
   runtime compatibility guidance.
 - `ffmpeg/`: retains upstream FFmpeg features (including SRT, XML2, and NVIDIA
   decoding/encoding support) and restores optional CUDA/NPP GPU scaling on
-  Linux x86_64/arm64 via `FFMPEG_NPP=1`. NPP preloads match this tree's CUDA 13
-  presets. Updating CUDA requires checking these ABI versions too.
+  Linux x86_64/arm64 via `FFMPEG_NPP=1`. FFmpeg 8.1 requires NPP below 13,
+  so its release toolkit is pinned to CUDA 12.9.1/NPP 12 independently of
+  the CUDA module's version. Keep FFmpeg's NPP/runtime preloads aligned with
+  `.github/scripts/ffmpeg-cuda-lock.json`.
 - `ffmpeg/cppbuild_rebuild.sh`: rebuilds only FFmpeg using already prepared
   sources/dependencies and the current build recipe. The historical
   `cppbuild_rebuild_fast_only_ffmpeg.sh` entry point also enables CUDA/NPP.

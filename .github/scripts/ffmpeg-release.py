@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -117,6 +118,10 @@ def publish(version):
             prefix = 'org/bytedeco/ffmpeg/' + classifier + '/'
             if not any(name.startswith(prefix) and 'jniavutil' in name for name in archive.namelist()):
                 raise ValueError('Invalid native classifier: ' + classifier)
+    for classifier, path in zip(CLASSIFIERS, files):
+        if classifier.startswith('linux-'):
+            subprocess.run([sys.executable, str(ROOT / '.github/scripts/ffmpeg-cuda.py'),
+                            'inspect', classifier, str(path)], check=True)
     pom = ET.parse(common / 'ffmpeg.pom')
     if pom.findtext('m:version', namespaces=N) != version:
         raise ValueError('Staged POM version differs from requested release')

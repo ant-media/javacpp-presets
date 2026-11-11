@@ -138,9 +138,27 @@ The pack contains regular native artifacts for Linux ARM64/x86_64 and macOS
 ARM64/x86_64. GPL variants are excluded. Android and Windows are excluded from
 the build matrix and from the published `ffmpeg-platform` dependencies and
 module descriptor. Linux jobs enable CUDA/NPP scaling with `FFMPEG_NPP=1`;
-macOS jobs keep it disabled. Linux runners must provision the matching CUDA
-compiler, NPP headers, and target libraries before this configuration can build.
-NPP runtime dependencies must also be bundled or installed on AMS hosts.
+macOS jobs keep it disabled. The dedicated installer uses CUDA 12.9.1/NPP 12
+because FFmpeg 8.1 rejects NPP 13 and newer. Component URLs and SHA-256 hashes
+are pinned in `.github/scripts/ffmpeg-cuda-lock.json`.
+
+Both Linux jobs run x86_64 compiler tools. The ARM64 job uses the existing
+`aarch64-linux-gnu` cross-compiler and ARM64-SBSA CUDA runtime/NPP libraries.
+The installer checks a PTX-only CUDA compilation and the target ELF architecture
+without running GPU code. It does not install a driver, cuDNN, NCCL, or nvCOMP.
+
+After packaging, the release job copies the NPP/CUDA runtime dependency closure
+into each Linux classifier jar. It preserves SONAME filenames, sets `$ORIGIN`
+library search paths, and includes component license notices. The JavaCPP
+preload list includes the CUDA runtime so it is extracted before NPP loads.
+Each jar contains a `cuda-runtime-manifest.json` with library checksums and
+`DT_NEEDED` metadata. Build and publish jobs inspect the actual jar contents,
+validate architecture and dependency closure, and reject NVIDIA driver/stub
+libraries. Linux jars must not depend on a build-runner CUDA installation.
+
+These are compilation and static artifact checks only. Native loading on a
+clean NVIDIA GPU machine and actual AMS ABR scaling are not performed by this
+workflow. Deployment hosts still need a compatible NVIDIA driver.
 
 Leave **publish** unchecked for a build-only run, or check it to publish the
 complete pack after all four builds pass. Each build stages its native jar;

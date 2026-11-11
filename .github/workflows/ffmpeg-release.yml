@@ -79,6 +79,11 @@ jobs:
         if: runner.os == 'Linux'
       - uses: ./.github/actions/deploy-macosx
         if: runner.os == 'macOS'
+      - name: Bundle and inspect CUDA/NPP runtime dependencies
+        if: runner.os == 'Linux'
+        env:
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+        run: python3 .github/scripts/ffmpeg-cuda.py bundle "$RELEASE_PLATFORM"
       - name: Collect native classifier and canonical Java artifacts
         env:
           RELEASE_PLATFORM: ${{ matrix.platform }}
@@ -110,6 +115,8 @@ jobs:
           distribution: temurin
           java-version: '17'
           server-id: github
+      - name: Install ELF inspection tools
+        run: sudo apt-get update && sudo apt-get -y install binutils patchelf
       - uses: actions/download-artifact@v4
         with:
           pattern: ffmpeg-*
