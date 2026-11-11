@@ -131,26 +131,26 @@ Use **Actions → Release Ant Media FFmpeg → Run workflow**, selecting
 `ams-master`. The workflow must first be merged into the default branch.
 It accepts a version such as `8.1-1.5.13-antmedia1`; the JavaCPP parent remains
 at the released 1.5.13 baseline. Increment the Ant Media revision for each new
-release. Version preparation is confined to the three FFmpeg POMs in the
+release. Version preparation is confined to the two FFmpeg POMs in the
 runner checkout; it does not rewrite the versions of other modules.
 
-The pack contains regular and GPL native artifacts for Linux ARM64/x86_64
-and macOS ARM64/x86_64. Android and Windows are excluded from the build matrix and from the published `ffmpeg-platform` and `ffmpeg-platform-gpl`
-dependencies and module descriptors. The default configuration retains
+The pack contains regular native artifacts for Linux ARM64/x86_64 and macOS
+ARM64/x86_64. GPL variants are excluded. Android and Windows are excluded from
+the build matrix and from the published `ffmpeg-platform` dependencies and
+module descriptor. The default configuration retains
 upstream NVIDIA decoder/encoder support; optional CUDA/NPP builds are disabled
 and are not validated by this workflow.
 
 Leave **publish** unchecked for a build-only run, or check it to publish the
-complete pack after all eight builds pass. Each build stages its native jar;
+complete pack after all four builds pass. Each build stages its native jar;
 Linux x86_64 supplies the canonical Java bindings, sources, Javadoc, and POM.
-One publisher uploads all classifiers together, followed by both platform
-aggregators, to:
+One publisher uploads all classifiers together, followed by the `ffmpeg-platform`
+aggregator, to:
 
 ```text
 https://maven.pkg.github.com/ant-media/javacpp-presets
 org.bytedeco:ffmpeg:8.1-1.5.13-antmedia1
 org.bytedeco:ffmpeg-platform:8.1-1.5.13-antmedia1
-org.bytedeco:ffmpeg-platform-gpl:8.1-1.5.13-antmedia1
 ```
 
 Authentication uses the workflow's `GITHUB_TOKEN` with `packages: write`;

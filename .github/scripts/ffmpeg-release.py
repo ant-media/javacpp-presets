@@ -17,7 +17,7 @@ ET.register_namespace('', NS)
 N = {'m': NS}
 ROOT = Path(__file__).resolve().parents[2]
 PLATFORMS = ('linux-arm64', 'linux-x86_64', 'macosx-arm64', 'macosx-x86_64')
-CLASSIFIERS = tuple(p + ext for p in PLATFORMS for ext in ('', '-gpl'))
+CLASSIFIERS = PLATFORMS
 REPOSITORY = 'https://maven.pkg.github.com/ant-media/javacpp-presets'
 DEPLOY = 'org.apache.maven.plugins:maven-deploy-plugin:3.1.4'
 BUNDLE = ROOT / 'release-bundle'
@@ -35,7 +35,7 @@ def prepare(version):
         raise ValueError('Recheck JavaCPP compatibility before changing the 1.5.13 release baseline')
     if not re.fullmatch(r'8\.1-1\.5\.13-antmedia[1-9][0-9]*', version):
         raise ValueError('Expected 8.1-1.5.13-antmediaN, for example 8.1-1.5.13-antmedia1')
-    for relative in ('ffmpeg/pom.xml', 'ffmpeg/platform/pom.xml', 'ffmpeg/platform/gpl/pom.xml'):
+    for relative in ('ffmpeg/pom.xml', 'ffmpeg/platform/pom.xml'):
         path = ROOT / relative
         tree = ET.parse(path)
         project = tree.getroot()
@@ -133,13 +133,12 @@ def publish(version):
           '-Dclassifiers=' + ','.join(CLASSIFIERS), '-Dtypes=' + ','.join('jar' for _ in files),
           '-Dsources=' + str(common / 'ffmpeg-sources.jar'),
           '-Djavadoc=' + str(common / 'ffmpeg-javadoc.jar'))
-    for pom_path in ('ffmpeg/platform/pom.xml', 'ffmpeg/platform/gpl/pom.xml'):
-        maven('-f', pom_path, 'package', DEPLOY + ':deploy', '-Djavacpp.platform.host',
-              '-DaltDeploymentRepository=github::' + REPOSITORY)
+    maven('-f', 'ffmpeg/platform/pom.xml', 'package', DEPLOY + ':deploy',
+          '-Djavacpp.platform.host', '-DaltDeploymentRepository=github::' + REPOSITORY)
     summary = os.environ.get('GITHUB_STEP_SUMMARY')
     if summary:
         with open(summary, 'a') as output:
-            output.write('Published `org.bytedeco:ffmpeg:' + version + '` and both platform aggregators.\n\n')
+            output.write('Published `org.bytedeco:ffmpeg:' + version + '` and the ffmpeg-platform aggregator.\n\n')
             output.write('Classifiers: ' + ', '.join('`' + value + '`' for value in CLASSIFIERS) + '\n')
 
 
@@ -149,7 +148,7 @@ def main():
     commands.add_parser('prepare').add_argument('version')
     collector = commands.add_parser('collect')
     collector.add_argument('platform', choices=PLATFORMS)
-    collector.add_argument('extension', nargs='?', default='', choices=('', '-gpl'))
+    collector.add_argument('extension', nargs='?', default='', choices=('',))
     commands.add_parser('publish')
     args = parser.parse_args()
     if args.command == 'prepare':
