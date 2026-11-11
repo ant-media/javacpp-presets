@@ -137,9 +137,10 @@ runner checkout; it does not rewrite the versions of other modules.
 The pack contains regular native artifacts for Linux ARM64/x86_64 and macOS
 ARM64/x86_64. GPL variants are excluded. Android and Windows are excluded from
 the build matrix and from the published `ffmpeg-platform` dependencies and
-module descriptor. The default configuration retains
-upstream NVIDIA decoder/encoder support; optional CUDA/NPP builds are disabled
-and are not validated by this workflow.
+module descriptor. Linux jobs enable CUDA/NPP scaling with `FFMPEG_NPP=1`;
+macOS jobs keep it disabled. Linux runners must provision the matching CUDA
+compiler, NPP headers, and target libraries before this configuration can build.
+NPP runtime dependencies must also be bundled or installed on AMS hosts.
 
 Leave **publish** unchecked for a build-only run, or check it to publish the
 complete pack after all four builds pass. Each build stages its native jar;

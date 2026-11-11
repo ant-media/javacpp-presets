@@ -70,7 +70,7 @@ jobs:
       CI_DEPLOY_PASSWORD: ''
       CI_DEPLOY_SETTINGS: ''
       STAGING_REPOSITORY: ''
-      FFMPEG_NPP: '0'
+      FFMPEG_NPP: ${{ startsWith(matrix.platform, 'linux-') && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
         with:
