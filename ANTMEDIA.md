@@ -181,4 +181,5 @@ a fresh Ant Media revision before publishing again.
 
 Build outputs remain downloadable as Actions artifacts for 14 days, including
 build-only runs. A build-only run does not publish Maven packages. The existing
-`ffmpeg` workflow continues to serve its upstream CI purpose.
+`ffmpeg` workflow continues to serve its upstream CI purpose with regular
+variants only; GPL variants are excluded from both FFmpeg workflows.
