@@ -87,6 +87,18 @@ def install(target, prefix, cache):
         source.write_text('__global__ void kernel() {}\n')
         subprocess.run([str(prefix / 'bin/nvcc'), '-ccbin', compiler_path, '-ptx',
                         '-arch=compute_75', str(source), '-o', str(source.with_suffix('.ptx'))], check=True)
+    # Check the same explicit search paths used by FFmpeg's NPP configure probe.
+    # In particular, cross GCC ignores LIBRARY_PATH. This executable is linked
+    # and inspected only; it is never run on the build host.
+    with tempfile.TemporaryDirectory() as temporary:
+        source = Path(temporary) / 'npp.c'
+        output = Path(temporary) / 'npp-link-check'
+        source.write_text('#include <npp.h>\nint main(void) { return nppGetLibVersion() == 0; }\n')
+        subprocess.run([compiler_path, str(source), '-I' + str(prefix / 'include'),
+                        '-L' + str(prefix / 'lib'), '-Wl,-rpath-link,' + str(prefix / 'lib'),
+                        '-Wl,--no-as-needed', '-lnppig', '-lnppicc', '-lnppc',
+                        '-lnppidei', '-lnppif', '-o', str(output)], check=True)
+        elf(output, target)
     values = {'CUDA_PATH': str(prefix), 'CUDA_LIBDIR': str(prefix / 'lib'),
               'NVCC_CCBIN': compiler_path}
     env_file = os.environ.get('GITHUB_ENV')

@@ -144,8 +144,11 @@ are pinned in `.github/scripts/ffmpeg-cuda-lock.json`.
 
 Both Linux jobs run x86_64 compiler tools. The ARM64 job uses the existing
 `aarch64-linux-gnu` cross-compiler and ARM64-SBSA CUDA runtime/NPP libraries.
-The installer checks a PTX-only CUDA compilation and the target ELF architecture
-without running GPU code. It does not install a driver, cuDNN, NCCL, or nvCOMP.
+The installer checks PTX-only CUDA compilation, links an NPP probe with the
+target compiler, and verifies ELF architecture without running the probe or GPU
+code. FFmpeg receives explicit CUDA include and target library search paths;
+ARM64 cross GCC does not use `LIBRARY_PATH` to locate NPP. The installer does
+not install a driver, cuDNN, NCCL, or nvCOMP.
 
 After packaging, the release job copies the NPP/CUDA runtime dependency closure
 into each Linux classifier jar. It preserves SONAME filenames, sets `$ORIGIN`

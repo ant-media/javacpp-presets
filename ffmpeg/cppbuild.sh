@@ -10,6 +10,8 @@ fi
 # Ant Media builds can opt into CUDA/NPP scaling without requiring CUDA on all hosts.
 FFMPEG_REBUILD=${FFMPEG_REBUILD:-0}
 FFMPEG_NPP=${FFMPEG_NPP:-0}
+FFMPEG_NPP_CFLAGS=
+FFMPEG_NPP_LDFLAGS=
 if [[ "$FFMPEG_REBUILD" == 1 || "$FFMPEG_NPP" == 1 ]]; then
     case "$PLATFORM" in
         linux-x86_64|linux-arm64) ;;
@@ -26,6 +28,9 @@ if [[ "$FFMPEG_NPP" == 1 ]]; then
     export PATH="$CUDA_PATH/bin:$PATH"
     export CPATH="$CUDA_PATH/include${CPATH:+:$CPATH}"
     export LIBRARY_PATH="$CUDA_LIBDIR${LIBRARY_PATH:+:$LIBRARY_PATH}"
+    # Cross GCC does not use LIBRARY_PATH to locate target libraries.
+    FFMPEG_NPP_CFLAGS="-I$CUDA_PATH/include"
+    FFMPEG_NPP_LDFLAGS="-L$CUDA_LIBDIR -Wl,-rpath-link,$CUDA_LIBDIR"
 fi
 
 DISABLE="--disable-iconv --disable-opencl --disable-sdl2 --disable-bzlib --disable-lzma --disable-linux-perf --disable-xlib"
@@ -1181,7 +1186,7 @@ EOF
             fi
         fi
         cd "$INSTALL_PATH/ffmpeg-$FFMPEG_VERSION"
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-libdrm --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --enable-libpulse --cc="gcc -m64" --cxx="g++ -m64" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || { cat ffbuild/config.log; exit 1; }
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-libdrm --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --enable-libpulse --cc="gcc -m64" --cxx="g++ -m64" --extra-cflags="$FFMPEG_NPP_CFLAGS -I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="$FFMPEG_NPP_LDFLAGS -L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || { cat ffbuild/config.log; exit 1; }
         make -j $MAKEJ
         make install
         ;;
@@ -1603,7 +1608,7 @@ EOF
         if [[ ! -d ${USERLAND_PATH:-} ]]; then
           USERLAND_PATH="$(which aarch64-linux-gnu-gcc | grep -o '.*/tools/')../userland"
         fi
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-cuda --enable-cuvid --enable-nvenc --enable-omx `#--enable-mmal` --enable-omx-rpi --enable-pthreads --enable-libxcb --enable-libpulse --cc="aarch64-linux-gnu-gcc" --cxx="aarch64-linux-gnu-g++" --extra-cflags="$CFLAGS -I$USERLAND_PATH/ -I$USERLAND_PATH/interface/vmcs_host/khronos/IL/ -I$USERLAND_PATH/host_applications/linux/libs/bcm_host/include/ -I../include/ -I../include/libxml2 -I../include/mfx/ -I../include/svt-av1 -fno-aggressive-loop-optimizations" --extra-ldflags="-Wl,-z,relro -L$USERLAND_PATH/build/lib/ -L../lib/" --extra-libs="-lstdc++ -lasound -lvchiq_arm `#-lvcsm` -lvcos -lpthread -ldl -lz -lm" --enable-cross-compile --arch=arm64 --target-os=linux --cross-prefix="aarch64-linux-gnu-" || { cat ffbuild/config.log; exit 1; }
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-cuda --enable-cuvid --enable-nvenc --enable-omx `#--enable-mmal` --enable-omx-rpi --enable-pthreads --enable-libxcb --enable-libpulse --cc="aarch64-linux-gnu-gcc" --cxx="aarch64-linux-gnu-g++" --extra-cflags="$FFMPEG_NPP_CFLAGS $CFLAGS -I$USERLAND_PATH/ -I$USERLAND_PATH/interface/vmcs_host/khronos/IL/ -I$USERLAND_PATH/host_applications/linux/libs/bcm_host/include/ -I../include/ -I../include/libxml2 -I../include/mfx/ -I../include/svt-av1 -fno-aggressive-loop-optimizations" --extra-ldflags="$FFMPEG_NPP_LDFLAGS -Wl,-z,relro -L$USERLAND_PATH/build/lib/ -L../lib/" --extra-libs="-lstdc++ -lasound -lvchiq_arm `#-lvcsm` -lvcos -lpthread -ldl -lz -lm" --enable-cross-compile --arch=arm64 --target-os=linux --cross-prefix="aarch64-linux-gnu-" || { cat ffbuild/config.log; exit 1; }
         make -j $MAKEJ
         make install
         ;;
