@@ -1,9 +1,5 @@
 name: ffmpeg
 on:
-  push:
-    paths:
-      - ffmpeg/**
-      - .github/workflows/ffmpeg.yml
   pull_request:
     paths:
       - ffmpeg/**
@@ -18,34 +14,6 @@ env:
   CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
   STAGING_REPOSITORY: ${{ secrets.STAGING_REPOSITORY }}
 jobs:
-#  android-arm:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: [""]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-  android-arm64:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        ext: [""]
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-#  android-x86:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: [""]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-  android-x86_64:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        ext: [""]
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
 #  linux-armhf:
 #    runs-on: ubuntu-22.04
 #    strategy:
@@ -110,8 +78,7 @@ jobs:
     steps:
       - uses: bytedeco/javacpp-presets/.github/actions/deploy-windows@actions
   platform:
-#    needs: [android-arm, android-arm64, android-x86, android-x86_64, linux-armhf, linux-arm64, linux-ppc64le, linux-x86, linux-x86_64, macosx-arm64, macosx-x86_64, windows-x86, windows-x86_64]
-    needs: [android-arm64, android-x86_64, linux-arm64, linux-x86_64, macosx-arm64, macosx-x86_64, windows-x86_64]
+    needs: [linux-arm64, linux-x86_64, macosx-arm64, macosx-x86_64, windows-x86_64]
     runs-on: ubuntu-22.04
     steps:
       - uses: bytedeco/javacpp-presets/.github/actions/redeploy@actions
