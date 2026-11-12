@@ -175,7 +175,8 @@ runs:
           export MAVEN_OPTIONS="-Djavacpp.platform.compiler=$PREFIX-g++ -Djava.library.path=/usr/$PREFIX/lib/:/usr/lib/$PREFIX/:$USERLAND_PATH/build/lib/"
         fi
 
-        if [[ -n ${ARCH_CUDA:-} ]] && [[ -n ${CI_DEPLOY_NEED_CUDA:-} ]]; then
+        if [[ -n ${ARCH_CUDA:-} ]] && [[ -n ${CI_DEPLOY_NEED_CUDA:-} ]] &&
+           [[ "$CI_DEPLOY_MODULE" != ffmpeg || "${FFMPEG_NPP:-0}" != 1 ]]; then
           echo Installing CUDA, cuDNN, nvCOMP, etc
           curl -LO https://developer.download.nvidia.com/compute/cuda/13.2.1/local_installers/$CUDA
           curl -LO https://developer.download.nvidia.com/compute/cuda/repos/rhel8/$ARCH_CUDA/libcudnn9-$CUDNN.rpm
@@ -305,6 +306,17 @@ runs:
         echo "GRADLE_TASK=$GRADLE_TASK" >> $GITHUB_ENV
         echo "MAVEN_PHASE=$MAVEN_PHASE" >> $GITHUB_ENV
         echo "MAVEN_OPTIONS=$MAVEN_OPTIONS" >> $GITHUB_ENV
+
+    - name: Install pinned FFmpeg CUDA/NPP build dependencies
+      if: env.CI_DEPLOY_MODULE == 'ffmpeg' && env.FFMPEG_NPP == '1'
+      shell: bash
+      run: |
+        sudo apt-get -y install patchelf
+        python3 .github/scripts/ffmpeg-cuda.py install "$CI_DEPLOY_PLATFORM" \
+          --prefix "$RUNNER_TEMP/ffmpeg-cuda-12.9.1" \
+          --cache "$RUNNER_TEMP/ffmpeg-cuda-downloads"
+        # Existing JavaCPP presets discover libraries through this conventional path.
+        sudo ln -sfnT "$RUNNER_TEMP/ffmpeg-cuda-12.9.1" /usr/local/cuda
 
     - name: Build project
       shell: bash

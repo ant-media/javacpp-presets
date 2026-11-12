@@ -245,8 +245,9 @@ FFMPEG_NPP=1 CUDA_PATH=/usr/local/cuda bash cppbuild.sh install ffmpeg -platform
 ```
 
 This enables `--enable-cuda-nvcc --enable-libnpp --enable-nonfree`. The resulting
-FFmpeg build is marked nonfree by FFmpeg's configure script. Use a CUDA 13 SDK
-matching this tree's NPP preloads; set `CUDA_LIBDIR` if its libraries are outside
+FFmpeg build is marked nonfree by FFmpeg's configure script. Use CUDA
+12.9.1/NPP 12 matching the FFmpeg NPP preloads; FFmpeg 8.1 rejects NPP 13 and
+newer. Set `CUDA_LIBDIR` if its libraries are outside
 `$CUDA_PATH/lib64` (for example `$CUDA_PATH/targets/aarch64-linux/lib`). For
 cross compilation, use target architecture CUDA headers/libraries and the
 matching CUDA cross toolchain. Runtime library search paths can also be set
