@@ -3,68 +3,74 @@ on:
   pull_request:
     paths:
       - ffmpeg/**
+      - .github/actions/deploy-ubuntu/**
+      - .github/actions/deploy-macosx/**
+      - .github/scripts/ffmpeg-*
       - .github/workflows/ffmpeg.yml
+      - .github/workflows/ffmpeg-release.yml
+      - pom.xml
   workflow_dispatch:
-env:
-  CI_DEPLOY_NEED_GCC: 1
-  CI_DEPLOY_MODULE: ${{ github.workflow }}
-  CI_DEPLOY_PLATFORM: ${{ github.job }}
-  CI_DEPLOY_SETTINGS: ${{ secrets.CI_DEPLOY_SETTINGS }}
-  CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
-  CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
-  STAGING_REPOSITORY: ${{ secrets.STAGING_REPOSITORY }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ffmpeg-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-#  linux-armhf:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: [""]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-  linux-arm64:
-    runs-on: ubuntu-22.04
+  build:
+    name: ${{ matrix.platform }}${{ matrix.ext }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
     strategy:
+      fail-fast: false
+      max-parallel: 4
       matrix:
-        ext: [""]
+        ext: ['']
+        include:
+          - platform: linux-arm64
+            runner: ubuntu-22.04
+          - platform: linux-x86_64
+            runner: ubuntu-22.04
+          - platform: macosx-arm64
+            runner: macos-15-intel
+          - platform: macosx-x86_64
+            runner: macos-15-intel
+        platform:
+          - linux-arm64
+          - linux-x86_64
+          - macosx-arm64
+          - macosx-x86_64
+    env:
+      ANTMEDIA_FFMPEG_RELEASE_VERSION: 8.1-1.5.13-antmedia1
+      CI_DEPLOY_MODULE: ffmpeg
+      CI_DEPLOY_PLATFORM: ${{ matrix.platform }}
+      CI_DEPLOY_NEED_GCC: '1'
+      CI_DEPLOY_USERNAME: ''
+      CI_DEPLOY_PASSWORD: ''
+      CI_DEPLOY_SETTINGS: ''
+      STAGING_REPOSITORY: ''
+      FFMPEG_NPP: ${{ startsWith(matrix.platform, 'linux-') && '1' || '0' }}
     steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-#  linux-ppc64le:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: [""]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-#  linux-x86:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: [""]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-  linux-x86_64:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        ext: [""]
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-  macosx-arm64:
-    runs-on: macos-15-intel
-    strategy:
-      matrix:
-        ext: [""]
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
-  macosx-x86_64:
-    runs-on: macos-15-intel
-    strategy:
-      matrix:
-        ext: [""]
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
-  platform:
-    needs: [linux-arm64, linux-x86_64, macosx-arm64, macosx-x86_64]
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/redeploy@actions
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy-ubuntu
+        if: runner.os == 'Linux'
+      - uses: ./.github/actions/deploy-macosx
+        if: runner.os == 'macOS'
+      - name: Bundle and inspect CUDA/NPP runtime dependencies
+        if: runner.os == 'Linux'
+        env:
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+        run: python3 .github/scripts/ffmpeg-cuda.py bundle "$RELEASE_PLATFORM"
+      - name: Collect native classifier and canonical Java artifacts
+        env:
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+          RELEASE_EXTENSION: ${{ matrix.ext }}
+        run: python3 .github/scripts/ffmpeg-release.py collect "$RELEASE_PLATFORM" -- "$RELEASE_EXTENSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ matrix.platform }}${{ matrix.ext }}
+          path: release-bundle/
+          if-no-files-found: error
+          retention-days: 14

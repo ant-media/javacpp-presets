@@ -184,4 +184,8 @@ build-only runs. A build-only run does not publish Maven packages. The existing
 `ffmpeg` workflow runs automatically for pull requests only, avoiding duplicate
 push and PR builds. Manual dispatch remains available. Both FFmpeg workflows build only the four
 regular Linux/macOS ARM64 and x86_64 variants; Android, Windows, and GPL
-variants are excluded.
+variants are excluded. PR checks use the fork's local build actions, including
+Linux CUDA/NPP provisioning and jar inspection, and upload build artifacts
+without publishing packages. A newer PR commit cancels the older CI run.
+The FFmpeg module and platform POMs inherit the local 1.5.13 parent; other
+modules' version baselines are managed separately.
