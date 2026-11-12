@@ -182,5 +182,6 @@ a fresh Ant Media revision before publishing again.
 Build outputs remain downloadable as Actions artifacts for 14 days, including
 build-only runs. A build-only run does not publish Maven packages. The existing
 `ffmpeg` workflow runs automatically for pull requests only, avoiding duplicate
-push and PR builds. Manual dispatch remains available. Android jobs are excluded
-from both FFmpeg workflows, and both use regular variants only.
+push and PR builds. Manual dispatch remains available. Both FFmpeg workflows build only the four
+regular Linux/macOS ARM64 and x86_64 variants; Android, Windows, and GPL
+variants are excluded.
