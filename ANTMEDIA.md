@@ -131,26 +131,48 @@ Use **Actions → Release Ant Media FFmpeg → Run workflow**, selecting
 `ams-master`. The workflow must first be merged into the default branch.
 It accepts a version such as `8.1-1.5.13-antmedia1`; the JavaCPP parent remains
 at the released 1.5.13 baseline. Increment the Ant Media revision for each new
-release. Version preparation is confined to the three FFmpeg POMs in the
+release. Version preparation is confined to the two FFmpeg POMs in the
 runner checkout; it does not rewrite the versions of other modules.
 
-The pack contains regular and GPL native artifacts for Linux ARM64/x86_64
-and macOS ARM64/x86_64. Android and Windows are excluded from the build matrix and from the published `ffmpeg-platform` and `ffmpeg-platform-gpl`
-dependencies and module descriptors. The default configuration retains
-upstream NVIDIA decoder/encoder support; optional CUDA/NPP builds are disabled
-and are not validated by this workflow.
+The pack contains regular native artifacts for Linux ARM64/x86_64 and macOS
+ARM64/x86_64. GPL variants are excluded. Android and Windows are excluded from
+the build matrix and from the published `ffmpeg-platform` dependencies and
+module descriptor. Linux jobs enable CUDA/NPP scaling with `FFMPEG_NPP=1`;
+macOS jobs keep it disabled. The dedicated installer uses CUDA 12.9.1/NPP 12
+because FFmpeg 8.1 rejects NPP 13 and newer. Component URLs and SHA-256 hashes
+are pinned in `.github/scripts/ffmpeg-cuda-lock.json`.
+
+Both Linux jobs run x86_64 compiler tools. The ARM64 job uses the existing
+`aarch64-linux-gnu` cross-compiler and ARM64-SBSA CUDA runtime/NPP libraries.
+The installer checks PTX-only CUDA compilation, links an NPP probe with the
+target compiler, and verifies ELF architecture without running the probe or GPU
+code. FFmpeg receives explicit CUDA include and target library search paths;
+ARM64 cross GCC does not use `LIBRARY_PATH` to locate NPP. The installer does
+not install a driver, cuDNN, NCCL, or nvCOMP.
+
+After packaging, the release job copies the NPP/CUDA runtime dependency closure
+into each Linux classifier jar. It preserves SONAME filenames, sets `$ORIGIN`
+library search paths, and includes component license notices. The JavaCPP
+preload list includes the CUDA runtime so it is extracted before NPP loads.
+Each jar contains a `cuda-runtime-manifest.json` with library checksums and
+`DT_NEEDED` metadata. Build and publish jobs inspect the actual jar contents,
+validate architecture and dependency closure, and reject NVIDIA driver/stub
+libraries. Linux jars must not depend on a build-runner CUDA installation.
+
+These are compilation and static artifact checks only. Native loading on a
+clean NVIDIA GPU machine and actual AMS ABR scaling are not performed by this
+workflow. Deployment hosts still need a compatible NVIDIA driver.
 
 Leave **publish** unchecked for a build-only run, or check it to publish the
-complete pack after all eight builds pass. Each build stages its native jar;
+complete pack after all four builds pass. Each build stages its native jar;
 Linux x86_64 supplies the canonical Java bindings, sources, Javadoc, and POM.
-One publisher uploads all classifiers together, followed by both platform
-aggregators, to:
+One publisher uploads all classifiers together, followed by the `ffmpeg-platform`
+aggregator, to:
 
 ```text
 https://maven.pkg.github.com/ant-media/javacpp-presets
 org.bytedeco:ffmpeg:8.1-1.5.13-antmedia1
 org.bytedeco:ffmpeg-platform:8.1-1.5.13-antmedia1
-org.bytedeco:ffmpeg-platform-gpl:8.1-1.5.13-antmedia1
 ```
 
 Authentication uses the workflow's `GITHUB_TOKEN` with `packages: write`;
@@ -162,4 +184,11 @@ a fresh Ant Media revision before publishing again.
 
 Build outputs remain downloadable as Actions artifacts for 14 days, including
 build-only runs. A build-only run does not publish Maven packages. The existing
-`ffmpeg` workflow continues to serve its upstream CI purpose.
+`ffmpeg` workflow runs automatically for pull requests only, avoiding duplicate
+push and PR builds. Manual dispatch remains available. Both FFmpeg workflows build only the four
+regular Linux/macOS ARM64 and x86_64 variants; Android, Windows, and GPL
+variants are excluded. PR checks use the fork's local build actions, including
+Linux CUDA/NPP provisioning and jar inspection, and upload build artifacts
+without publishing packages. A newer PR commit cancels the older CI run.
+The FFmpeg module and platform POMs inherit the local 1.5.13 parent; other
+modules' version baselines are managed separately.
